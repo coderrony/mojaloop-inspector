@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+
+  --bg-page-light: #f4f7fb;
+  --bg-page-dark: #0b1120;
+  --bg-surface-light: #ffffff;
+  --bg-surface-dark: #11192c;
+  --bg-elevated-light: #f8fafc;
+  --bg-elevated-dark: #18233c;
+  --border-light: #dbe3ef;
+  --border-dark: #253453;
+  --text-primary-light: #0f172a;
+  --text-primary-dark: #f1f5f9;
+  --text-secondary-light: #475569;
+  --text-secondary-dark: #94a3b8;
+  --accent-light: #0d4b76;
+  --accent-dark: #38bdf8;
+  --accent-fg-light: #ffffff;
+  --accent-fg-dark: #082f49;
+
+  --bg-page: var(--bg-page-light);
+  --bg-surface: var(--bg-surface-light);
+  --bg-elevated: var(--bg-elevated-light);
+  --border-subtle: var(--border-light);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --accent: var(--accent-light);
+  --accent-fg: var(--accent-fg-light);
+
+  --scrollbar-track: #e2e8f0;
+  --scrollbar-thumb: #64748b;
+
+  @media (prefers-color-scheme: dark) {
+    --bg-page: var(--bg-page-dark);
+    --bg-surface: var(--bg-surface-dark);
+    --bg-elevated: var(--bg-elevated-dark);
+    --border-subtle: var(--border-dark);
+    --text-primary: var(--text-primary-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --accent: var(--accent-dark);
+    --accent-fg: var(--accent-fg-dark);
+    --scrollbar-track: #1e293b;
+    --scrollbar-thumb: #64748b;
+  }
+
+  @supports (color: light-dark(white, black)) {
+    --bg-page: light-dark(var(--bg-page-light), var(--bg-page-dark));
+    --bg-surface: light-dark(var(--bg-surface-light), var(--bg-surface-dark));
+    --bg-elevated: light-dark(var(--bg-elevated-light), var(--bg-elevated-dark));
+    --border-subtle: light-dark(var(--border-light), var(--border-dark));
+    --text-primary: light-dark(var(--text-primary-light), var(--text-primary-dark));
+    --text-secondary: light-dark(var(--text-secondary-light), var(--text-secondary-dark));
+    --accent: light-dark(var(--accent-light), var(--accent-dark));
+    --accent-fg: light-dark(var(--accent-fg-light), var(--accent-fg-dark));
+    --scrollbar-track: light-dark(#e2e8f0, #1e293b);
+    --scrollbar-thumb: light-dark(#64748b, #94a3b8);
+  }
+
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  accent-color: var(--accent);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:where(a:any-link, button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Native Modal Dialog best practices */
+dialog.service-dialog {
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  inline-size: min(56rem, calc(100dvw - 2rem));
+  max-block-size: calc(100dvh - 2.5rem);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
+}
+
+dialog.service-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.service-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.service-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgb(15 23 42 / 0.65);
+  backdrop-filter: blur(4px);
+}
+
+/* Accessible Tabs Indicator (border-block-end preserves forced-colors mode) */
+[role="tab"] {
+  position: relative;
+}
+
+[role="tab"][aria-selected="true"] {
+  color: var(--accent);
+}
+
+[role="tab"][aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  border-block-end: 3px solid var(--accent);
+}
+
+/* Responsive Data Table with Container Queries & Sticky Headers */
+.table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(680px, 72dvh);
+  container-type: inline-size;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background-color: var(--bg-surface);
+}
+
+.services-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.services-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background-color: var(--bg-elevated);
+}
+
+.services-table thead th {
+  border-block-end: 1px solid var(--border-subtle);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.services-table tbody th,
+.services-table tbody td {
+  border-block-end: 1px solid var(--border-subtle);
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.services-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background-color: var(--bg-surface);
+  font-weight: 600;
+}
+
+.services-table tbody tr:hover th,
+.services-table tbody tr:hover td {
+  background-color: var(--bg-elevated);
+}
+
+@container (width < 680px) {
+  .services-table,
+  .services-table thead,
+  .services-table tbody,
+  .services-table tr,
+  .services-table th,
+  .services-table td {
+    display: block;
+  }
+
+  .services-table thead {
+    display: none;
+  }
+
+  .services-table tr {
+    margin-block-end: 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .services-table tbody th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background-color: var(--bg-elevated);
+  }
+
+  .services-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .services-table td::before {
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .services-table td:nth-child(2)::before { content: "Status: "; }
+  .services-table td:nth-child(3)::before { content: "Docker Image: "; }
+  .services-table td:nth-child(4)::before { content: "Category: "; }
+  .services-table td:nth-child(5)::before { content: "Role: "; }
+}

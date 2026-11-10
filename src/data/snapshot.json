@@ -1,0 +1,62 @@
+{
+  "serverHost": "ec2-13-63-126-137.eu-north-1.compute.amazonaws.com",
+  "serverIp": "13.63.126.137",
+  "capturedAt": "2026-11-10T11:46:10Z",
+  "executedCommand": "docker compose --profile all-services --profile ttk-provisioning --profile ttk-tests up",
+  "activeProfiles": [
+    "all-services",
+    "ttk-provisioning",
+    "ttk-tests"
+  ],
+  "counts": {
+    "totalDefined": 54,
+    "running": 28,
+    "exitedCompleted": 3,
+    "inactive": 23,
+    "totalImages": 29,
+    "pulledImages": 15,
+    "totalProfiles": 25
+  },
+  "provisioningReport": {
+    "status": "PASSED",
+    "passedAssertions": 100,
+    "failedAssertions": 0,
+    "totalRequests": 96,
+    "totalTestCases": 9,
+    "passPercentage": "100.00%",
+    "durationMs": 84106,
+    "completedTime": "2026-11-10T11:39:29.139Z",
+    "reportFile": "reports/ttk-provisioning-report.html"
+  },
+  "testsReport": {
+    "status": "PASSED",
+    "passedAssertions": 31,
+    "failedAssertions": 0,
+    "totalRequests": 4,
+    "totalTestCases": 1,
+    "passPercentage": "100.00%",
+    "durationMs": 31187,
+    "completedTime": "2026-11-10T11:40:08.861Z",
+    "reportFile": "reports/ttk-func-tests-report.html"
+  },
+  "liveDiagnosticNotes": [
+    {
+      "serviceId": "central-settlement",
+      "severity": "warning",
+      "title": "Docker Healthcheck Port Mismatch (Process is Active)",
+      "detail": "Docker reports health: starting/unhealthy because docker-compose.yml checks port 3001 instead of 3007. Verified via live container logs that RulesHandler is actively consuming Kafka messages (e.g., calculating 0.60 XTS interchange fees)."
+    },
+    {
+      "serviceId": "ttk-provisioning",
+      "severity": "success",
+      "title": "Clean Exited (0) Completion",
+      "detail": "One-shot provisioning job completed 100/100 assertions, seeded Hub accounts, currencies (XXX, XTS), Oracles, and DFSPs, then exited cleanly."
+    },
+    {
+      "serviceId": "ttk-tests",
+      "severity": "success",
+      "title": "Clean Exited (0) Completion",
+      "detail": "One-shot functional suite waited for provisioning and passed 31/31 assertions before exiting."
+    }
+  ]
+}

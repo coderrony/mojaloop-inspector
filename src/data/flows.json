@@ -1,0 +1,107 @@
+[
+  {
+    "id": "boot-migrations",
+    "title": "1. Container Boot & Database Auto-Migration",
+    "subtitle": "How empty MySQL containers turn into 108 populated tables automatically on startup",
+    "steps": [
+      {
+        "step": 1,
+        "title": "MySQL Container Initialization",
+        "serviceId": "mysql",
+        "action": "Creates empty `central_ledger` & `account_lookup` schemas via MYSQL_DATABASE env var and executes `01_permissions.sql`.",
+        "artifact": "docker-compose.yml -> mysql & mysql-als"
+      },
+      {
+        "step": 2,
+        "title": "Kafka Topic Provisioning",
+        "serviceId": "kafka-provisioning",
+        "action": "Pre-creates Kafka event topics (`topic-transfer-prepare`, `topic-transfer-fulfil`, `topic-transfer-position-batch`) and exits (0).",
+        "artifact": "docker/kafka/scripts/"
+      },
+      {
+        "step": 3,
+        "title": "Knex.js Schema Migrations",
+        "serviceId": "central-ledger",
+        "action": "Executes `Migrator.migrate()` inside `src/shared/setup.js` on startup, running 50+ scripts in `src/migrations/` to build 108 tables + `migration` lock.",
+        "artifact": "central-ledger/src/migrations/"
+      },
+      {
+        "step": 4,
+        "title": "Baseline Seed Data Injection",
+        "serviceId": "central-ledger",
+        "action": "Runs `src/seeds/` scripts populating `amountType` (SEND/RECEIVE), `ledgerAccountType`, `transferState`, and initial `Hub` participant.",
+        "artifact": "central-ledger/src/seeds/amountType.js"
+      }
+    ]
+  },
+  {
+    "id": "ttk-provisioning-flow",
+    "title": "2. Automated TTK Provisioning Pipeline",
+    "subtitle": "What ml-testing-toolkit-client-lib does before tests or Mobile Simulator transfers can work",
+    "steps": [
+      {
+        "step": 1,
+        "title": "CLI Runner Reads Environment & Order",
+        "serviceId": "ttk-provisioning",
+        "action": "Reads `default-env.json` (HUB_NAME, currency=XXX, payeefsp, payerfsp) and `collections/provisioning/master.json` (`--labels std`).",
+        "artifact": "ml-testing-toolkit-client-lib/src/client.js"
+      },
+      {
+        "step": 2,
+        "title": "Hub Accounts & Settlement Models",
+        "serviceId": "mojaloop-testing-toolkit",
+        "action": "Dispatches `hub_setup.json` requests to `central-ledger:3001` creating `HUB_MULTILATERAL_SETTLEMENT` accounts & `DEFAULTDEFERREDNET` rules.",
+        "artifact": "collections/provisioning/hub_setup.json"
+      },
+      {
+        "step": 3,
+        "title": "MSISDN Oracle Onboarding",
+        "serviceId": "account-lookup-service",
+        "action": "Executes `hub_setup_prod.json` registering `als-msisdn-oracle-svc:3000` in ALS (`mysql-als.oracleEndpoint`).",
+        "artifact": "collections/provisioning/hub_setup_prod.json"
+      },
+      {
+        "step": 4,
+        "title": "DFSP Onboarding, Limits & Liquidity",
+        "serviceId": "central-ledger",
+        "action": "Runs `participant_receiver.json` & `participant_sender.json` creating `payeefsp` & `testingtoolkitdfsp`, setting Net Debit Caps, callbacks, and funding deposits.",
+        "artifact": "100/100 Assertions Passed -> objstore (ttk.reports)"
+      }
+    ]
+  },
+  {
+    "id": "p2p-transfer-flow",
+    "title": "3. Live Mobile Simulator P2P Transfer",
+    "subtitle": "Behind the scenes when Pink Bank sends funds to 987654320 (Green Bank)",
+    "steps": [
+      {
+        "step": 1,
+        "title": "Party Discovery (Phone Lookup)",
+        "serviceId": "account-lookup-service",
+        "action": "Pink Bank queries `GET /parties/MSISDN/987654320`. ALS consults `als-msisdn-oracle-svc`, routes to Green Bank mock (`mojaloop-testing-toolkit` Rule #223), which returns \"Justin Pierre Trudeau\" via PUT callback.",
+        "artifact": "spec_files/rules_callback/default.json (Rule #223)"
+      },
+      {
+        "step": 2,
+        "title": "Agreement & Cryptographic Quote",
+        "serviceId": "quoting-service",
+        "action": "Pink Bank sends `POST /quotes`. `quoting-service` & `quoting-service-handler` negotiate fees and Payee generates an ILP cryptographic condition (SHA-256 hash lock).",
+        "artifact": "central_ledger.quote & quoteResponse"
+      },
+      {
+        "step": 3,
+        "title": "Prepare Phase (Funds Reservation)",
+        "serviceId": "ml-api-adapter",
+        "action": "Pink Bank sends `POST /transfers` with condition. `ml-api-adapter` publishes to Kafka `topic-transfer-prepare`. `central-ledger` validates NDC and marks transfer `RESERVED`.",
+        "artifact": "Kafka -> central-handler-position-batch"
+      },
+      {
+        "step": 4,
+        "title": "Fulfil & Commit Phase (Settlement)",
+        "serviceId": "central-settlement",
+        "action": "Green Bank returns cryptographic fulfillment (`PUT /transfers/{id}`). `central-ledger` verifies hash, marks `COMMITTED`, updates `participantPosition` balances, and `central-settlement` applies interchange fee rules.",
+        "artifact": "WebSocket /socket.io/ -> mojaloop-testing-toolkit-ui"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1991 @@
+[
+  {
+    "id": "central-ledger",
+    "containerName": "central-ledger",
+    "category": "Core Switch",
+    "image": "mojaloop/central-ledger:v19.4.4",
+    "imageRepository": "mojaloop/central-ledger",
+    "imageTag": "v19.4.4",
+    "diskSize": "964MB",
+    "githubRepo": "https://github.com/mojaloop/central-ledger",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:14.476229591Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-ledger",
+      "transfer",
+      "discovery",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3001/tcp"
+    ],
+    "dependsOn": [
+      "mysql",
+      "kafka",
+      "objstore",
+      "kafka-provisioning"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-ledger && node src/api/index.js\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "LOG_LEVEL=info",
+      "CLEDG_MONGODB__DISABLED=false"
+    ],
+    "shortSummary": "Core financial ledger managing participant accounts, limits, positions, and 2-phase commit transfers.",
+    "behindTheScenes": "On boot, calls Migrator.migrate() in src/shared/setup.js to create 108 MySQL tables via Knex.js (src/migrations/) and seed baseline enums (src/seeds/amountType.js, Hub participant). Exposes Admin API (port 3001) and runs Kafka consumers for topic-transfer-prepare, topic-transfer-fulfil, and position handling.",
+    "developerCustomization": "Modify business logic in central-ledger/src/, database schemas in src/migrations/, or seeds in src/seeds/. Rebuild locally and update CENTRAL_LEDGER_VERSION in .env."
+  },
+  {
+    "id": "central-handler-position-batch",
+    "containerName": "central-handler-position-batch",
+    "category": "Core Switch",
+    "image": "mojaloop/central-ledger:v19.4.4",
+    "imageRepository": "mojaloop/central-ledger",
+    "imageTag": "v19.4.4",
+    "diskSize": "964MB",
+    "githubRepo": "https://github.com/mojaloop/central-ledger",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:36:45.528063057Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3001/tcp"
+    ],
+    "dependsOn": [
+      "mysql",
+      "central-ledger",
+      "kafka",
+      "kafka-provisioning"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-ledger && node src/handlers/index.js handler --positionbatch\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "LOG_LEVEL=info",
+      "CLEDG_MONGODB__DISABLED=true",
+      "EVENT_SDK_TRACEID_PER_VENDOR=false"
+    ],
+    "shortSummary": "High-throughput Kafka consumer worker processing batched participant position adjustments.",
+    "behindTheScenes": "Uses the same mojaloop/central-ledger codebase but executes `node src/handlers/index.js handler --positionbatch`. Consumes `topic-transfer-position-batch` to debit Payer and credit Payee positions atomically in MySQL without locking the HTTP API server.",
+    "developerCustomization": "Code lives in central-ledger/src/handlers/positions/. Shares database config with central-ledger via docker/config-modifier/configs/central-ledger.js."
+  },
+  {
+    "id": "objstore",
+    "containerName": "objstore",
+    "category": "Data & Messaging",
+    "image": "mongo:8.0.6",
+    "imageRepository": "mongo",
+    "imageTag": "8.0.6",
+    "diskSize": "1.19GB",
+    "githubRepo": "https://hub.docker.com/_/mongo",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:21.086378311Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-ledger",
+      "transfer",
+      "discovery",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "27017 -> 27017/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "MongoDB 8.0 document store persisting central-ledger audit events (`mlos`) and TTK reports (`ttk`).",
+    "behindTheScenes": "Exposed on port 27017. Stores two critical databases: `mlos` (immutable event audit trail from central-ledger) and `ttk` (`reports` collection rendered on `/admin/reports`).",
+    "developerCustomization": "Query reports via `docker exec objstore mongosh ttk --eval \"db.reports.find()\"`."
+  },
+  {
+    "id": "kafka-provisioning",
+    "containerName": "kafka-provisioning",
+    "category": "Data & Messaging",
+    "image": "docker.io/bitnamilegacy/kafka:3.9.0",
+    "imageRepository": "docker.io/bitnamilegacy/kafka",
+    "imageTag": "3.9.0",
+    "diskSize": "697MB",
+    "githubRepo": "https://github.com/bitnami/containers/tree/main/bitnami/kafka",
+    "liveStatus": "exited",
+    "healthStatus": "none",
+    "statusText": "Exited (0) - Completed",
+    "startedAt": "2026-11-10T11:32:29.044752107Z",
+    "finishedAt": "2026-11-10T11:35:14.155909946Z",
+    "profiles": [
+      "central-ledger",
+      "transfer",
+      "discovery",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "kafka"
+    ],
+    "command": "bash /tmp/kafka/scripts/provision.sh",
+    "volumes": [
+      "./docker/kafka/scripts:/tmp/kafka/scripts"
+    ],
+    "envVars": [],
+    "shortSummary": "One-shot init container that pre-creates all required Mojaloop Kafka topics and partitions.",
+    "behindTheScenes": "Connects to `kafka:29092` on startup, runs the topic creation script (`docker/kafka/scripts/`), ensures all transfer/quote/settlement topics exist with correct partitions, and exits with code 0.",
+    "developerCustomization": "Topic definitions and partition counts are managed in docker/kafka/."
+  },
+  {
+    "id": "kafka",
+    "containerName": "kafka",
+    "category": "Data & Messaging",
+    "image": "docker.io/bitnamilegacy/kafka:3.9.0",
+    "imageRepository": "docker.io/bitnamilegacy/kafka",
+    "imageTag": "3.9.0",
+    "diskSize": "697MB",
+    "githubRepo": "https://github.com/bitnami/containers/tree/main/bitnami/kafka",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:19.026652088Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-ledger",
+      "transfer",
+      "discovery",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "9092/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "ALLOW_PLAINTEXT_LISTENER=yes",
+      "KAFKA_ADVERTISED_HOST_NAME=kafka",
+      "KAFKA_CFG_LISTENERS=CONTROLLER://:9093,LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://:9092",
+      "KAFKA_CFG_ADVERTISED_LISTENERS=LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://localhost:9092",
+      "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,LISTENER_DOCKER:PLAINTEXT,LISTENER_EXTERN:PLAINTEXT",
+      "KAFKA_CFG_INTER_BROKER_LISTENER_NAME=LISTENER_DOCKER",
+      "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+      "KAFKA_CFG_MESSAGE_MAX_BYTES=200000000",
+      "KAFKA_CFG_NODE_ID=1",
+      "KAFKA_CFG_PROCESS_ROLES=broker,controller",
+      "KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+      "KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9093"
+    ],
+    "shortSummary": "Distributed event streaming backbone decoupling API gateways, handlers, ledger, and notifications.",
+    "behindTheScenes": "Runs in KRaft mode (port 9092/29092). Carries high-throughput async events across topics like `topic-transfer-prepare`, `topic-transfer-fulfil`, `topic-transfer-position-batch`, `topic-quotes-post`, and `topic-notification-event`.",
+    "developerCustomization": "Inspect live topic lag and messages by launching the optional `debug` profile (`kafka-debug-ui`)."
+  },
+  {
+    "id": "mysql",
+    "containerName": "mysql",
+    "category": "Data & Messaging",
+    "image": "mysql/mysql-server:8.0",
+    "imageRepository": "mysql/mysql-server",
+    "imageTag": "8.0",
+    "diskSize": "698MB",
+    "githubRepo": "https://hub.docker.com/_/mysql",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:20.303002666Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-ledger",
+      "transfer",
+      "discovery",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3306/tcp",
+      "33060/tcp",
+      "33061/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [
+      "./docker/sql-init/:/docker-entrypoint-initdb.d/"
+    ],
+    "envVars": [
+      "MYSQL_USER=central_ledger",
+      "MYSQL_PASSWORD=password",
+      "MYSQL_DATABASE=central_ledger",
+      "MYSQL_ALLOW_EMPTY_PASSWORD=true"
+    ],
+    "shortSummary": "Primary MySQL 8.0 relational database housing the `central_ledger` schema (108 tables).",
+    "behindTheScenes": "Auto-creates empty `central_ledger` database on startup via `MYSQL_DATABASE=central_ledger` and runs `docker/sql-init/01_permissions.sql`. Shared by central-ledger, quoting-service, and central-settlement for transfers, quotes, positions, and settlement windows.",
+    "developerCustomization": "Expose port 3306 or use SSH tunnel in DBeaver (`central_ledger` / `password`) to inspect `transfer`, `participant`, and `participantPosition` tables."
+  },
+  {
+    "id": "quoting-service",
+    "containerName": "quoting-service",
+    "category": "Core Switch",
+    "image": "mojaloop/quoting-service:v17.8.0",
+    "imageRepository": "mojaloop/quoting-service",
+    "imageTag": "v17.8.0",
+    "diskSize": "1.08GB",
+    "githubRepo": "https://github.com/mojaloop/quoting-service",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:16.067810154Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "quoting-service",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3002/tcp"
+    ],
+    "dependsOn": [
+      "mysql",
+      "central-ledger",
+      "kafka",
+      "kafka-provisioning"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json && node src/index.js\"",
+    "volumes": [
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "UV_THREADPOOL_SIZE=20"
+    ],
+    "shortSummary": "Handles inter-DFSP quote negotiations, fee calculation, and cryptographic ILP conditions.",
+    "behindTheScenes": "Processes POST /quotes, PUT /quotes/{ID}, and FX quotes on port 3002. Persists quote agreements in the shared central_ledger MySQL database (`quote`, `quoteResponse`, `fxQuote` tables) and publishes quote events to Kafka.",
+    "developerCustomization": "Edit fee logic or quote validation rules in quoting-service/src/ and configure Kafka consumer topics in docker/config-modifier/configs/quoting-service.js."
+  },
+  {
+    "id": "quoting-service-handler",
+    "containerName": "quoting-service-handler",
+    "category": "Core Switch",
+    "image": "mojaloop/quoting-service:v17.8.0",
+    "imageRepository": "mojaloop/quoting-service",
+    "imageTag": "v17.8.0",
+    "diskSize": "1.08GB",
+    "githubRepo": "https://github.com/mojaloop/quoting-service",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:47.169927644Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "quoting-service",
+      "agreement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3002/tcp"
+    ],
+    "dependsOn": [
+      "mysql",
+      "central-ledger",
+      "kafka",
+      "quoting-service",
+      "kafka-provisioning"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json && npm run start:handlers\"",
+    "volumes": [
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "UV_THREADPOOL_SIZE=20"
+    ],
+    "shortSummary": "Async Kafka worker handling quote processing and forwarding callbacks between Payer and Payee FSPs.",
+    "behindTheScenes": "Runs `node dist/src/handlers/index.js` from the quoting-service image. Consumes `topic-quotes-post` and `topic-quotes-put` from Kafka, resolves Payee endpoints via central-ledger, and dispatches asynchronous callbacks.",
+    "developerCustomization": "Shares source code with quoting-service; configure concurrency or topic partitions in docker/config-modifier/configs/quoting-service.js."
+  },
+  {
+    "id": "ml-api-adapter",
+    "containerName": "ml-api-adapter",
+    "category": "Core Switch",
+    "image": "mojaloop/ml-api-adapter:v16.4.2",
+    "imageRepository": "mojaloop/ml-api-adapter",
+    "imageTag": "v16.4.2",
+    "diskSize": "1.16GB",
+    "githubRepo": "https://github.com/mojaloop/ml-api-adapter",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:16.576498642Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "ml-api-adapter",
+      "transfer",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3000/tcp"
+    ],
+    "dependsOn": [
+      "kafka",
+      "kafka-provisioning",
+      "central-ledger"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/ml-api-adapter.js /opt/app/config/default.json && /opt/app/wait4/wait4.js ml-api-adapter && node src/api/index.js\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc",
+      "./docker/secrets/jwsSigningKey.key:/opt/app/secrets/jwsSigningKey.key"
+    ],
+    "envVars": [
+      "LOG_LEVEL=info"
+    ],
+    "shortSummary": "Inbound FSPIOP REST API gateway validating transfer requests and publishing events to Kafka.",
+    "behindTheScenes": "Receives POST /transfers and PUT /transfers/{ID} from DFSPs on port 3000. Validates OpenAPI headers, JWS/signatures, and forwards transfer prepare/fulfil messages onto Kafka (`topic-transfer-prepare`, `topic-transfer-fulfil`). Also runs notification handler delivering callbacks back to DFSP endpoints.",
+    "developerCustomization": "Customize inbound schema validation, error handling, or notification routing in ml-api-adapter/src/ and config in docker/config-modifier/configs/ml-api-adapter.js."
+  },
+  {
+    "id": "simulator",
+    "containerName": "simulator",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/simulator:v12.2.4",
+    "imageRepository": "mojaloop/simulator",
+    "imageTag": "v12.2.4",
+    "diskSize": "426MB",
+    "githubRepo": "https://github.com/mojaloop/simulator",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:28.407110027Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "simulator",
+      "discovery",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "8444/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "LOG_LEVEL=info",
+      "TRANSFERS_ENDPOINT=http://ml-api-adapter:3000",
+      "QUOTES_ENDPOINT=http://quoting-service:3002",
+      "PARTIES_ENDPOINT=http://account-lookup-service:4002",
+      "TRANSACTION_REQUESTS_ENDPOINT=http://transaction-request-service:4003",
+      "TRANSFERS_FULFIL_RESPONSE_DISABLED=false"
+    ],
+    "shortSummary": "Generic mock participant backend simulating core banking responses for quotes, parties, and transfers.",
+    "behindTheScenes": "Listens on port 8444. Used by SDK scheme adapters and TTK tests to simulate external DFSP core banking logic (accepting/rejecting deposits and lookups).",
+    "developerCustomization": "Configure simulator party repository or custom responses via simulator test APIs."
+  },
+  {
+    "id": "account-lookup-service",
+    "containerName": "account-lookup-service",
+    "category": "Core Switch",
+    "image": "mojaloop/account-lookup-service:v17.9.1",
+    "imageRepository": "mojaloop/account-lookup-service",
+    "imageTag": "v17.9.1",
+    "diskSize": "1.23GB",
+    "githubRepo": "https://github.com/mojaloop/account-lookup-service",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:15.655490183Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "account-lookup-service",
+      "discovery",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3001/tcp"
+    ],
+    "dependsOn": [
+      "mysql-als",
+      "central-ledger",
+      "simulator"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/account-lookup-service.js /opt/app/config/default.json && /opt/app/wait4/wait4.js account-lookup-service && npm run migrate && npm run start:all\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "LOG_LEVEL=info",
+      "ALS_DISPLAY_ROUTES=false",
+      "EVENT_SDK_TRACEID_PER_VENDOR=false"
+    ],
+    "shortSummary": "Party discovery & routing directory mapping identifiers (MSISDN, Account ID) to DFSPs.",
+    "behindTheScenes": "Handles GET /parties/{Type}/{ID} (port 4001/4002). Consults registered Oracles in `mysql-als` (`oracleEndpoint` table) to determine which DFSP owns a phone number or account, then forwards discovery requests and PUT callbacks between banks. Note: Inter-scheme proxy cache is disabled in config-modifier for single-hub POC.",
+    "developerCustomization": "Oracle routing config is seeded via `hub_setup_prod.json` (/oracles). Service config resides in docker/config-modifier/configs/account-lookup-service.js."
+  },
+  {
+    "id": "als-msisdn-oracle-svc",
+    "containerName": "als-msisdn-oracle-svc",
+    "category": "Core Switch",
+    "image": "mojaloop/als-msisdn-oracle-svc:v0.0.18",
+    "imageRepository": "mojaloop/als-msisdn-oracle-svc",
+    "imageTag": "v0.0.18",
+    "diskSize": "902MB",
+    "githubRepo": "https://github.com/mojaloop/als-msisdn-oracle-svc",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:35:15.265063728Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "als-msisdn-oracle-svc",
+      "discovery",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3000/tcp"
+    ],
+    "dependsOn": [
+      "mysql-als",
+      "central-ledger",
+      "simulator"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/dist/config/default.json /opt/app/config-modifier/configs/als-msisdn-oracle-svc.js /opt/app/dist/config/default.json && /opt/app/wait4/wait4.js als-msisdn-oracle-svc && npm run migrate && node ./dist/src/cli.js\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier"
+    ],
+    "envVars": [],
+    "shortSummary": "Phone number (MSISDN) oracle service mapping mobile numbers to participant FSP IDs.",
+    "behindTheScenes": "Runs Knex migrations on `mysql-als` (`oracleMSISDN` table) and serves REST lookups on port 3000. When ALS asks who owns `987654320`, this oracle returns the mapped FSP ID or falls back to simulator rules.",
+    "developerCustomization": "Add or query MSISDN mappings via its REST API or directly inspect `oracleMSISDN` in the `mysql-als` database."
+  },
+  {
+    "id": "mysql-als",
+    "containerName": "mysql-als",
+    "category": "Data & Messaging",
+    "image": "mysql/mysql-server:8.0",
+    "imageRepository": "mysql/mysql-server",
+    "imageTag": "8.0",
+    "diskSize": "698MB",
+    "githubRepo": "https://hub.docker.com/_/mysql",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:20.627029187Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "account-lookup-service",
+      "als-msisdn-oracle-svc",
+      "discovery",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3306/tcp",
+      "33060/tcp",
+      "33061/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [
+      "./docker/sql-als-init/:/docker-entrypoint-initdb.d/"
+    ],
+    "envVars": [
+      "MYSQL_USER=account_lookup",
+      "MYSQL_PASSWORD=password",
+      "MYSQL_DATABASE=account_lookup",
+      "MYSQL_ALLOW_EMPTY_PASSWORD=true"
+    ],
+    "shortSummary": "Dedicated MySQL 8.0 database for `account_lookup` and MSISDN oracle routing tables.",
+    "behindTheScenes": "Stores `oracleEndpoint` registrations, `partyIdType` enums (MSISDN, ACCOUNT_ID, etc.), and `oracleMSISDN` phone number mappings.",
+    "developerCustomization": "Initialization scripts reside in docker/sql-als-init/."
+  },
+  {
+    "id": "fx-provider1-sdk",
+    "containerName": "fx-provider1-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "fx-sdk"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn nx run modules-api-svc:start:debug",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/fx-provider.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `fx-provider1` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/fx-provider1-sdk.env and pairs with `fx-provider1-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `fx-provider1`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/fx-provider1-sdk.env."
+  },
+  {
+    "id": "fx-payerdfsp-sdk",
+    "containerName": "fx-payerdfsp-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "fx-sdk"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn nx run modules-api-svc:start:debug",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/fx-payerdfsp-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `fx-payerdfsp` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/fx-payerdfsp-sdk.env and pairs with `fx-payerdfsp-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `fx-payerdfsp`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/fx-payerdfsp-sdk.env."
+  },
+  {
+    "id": "fx-payeedfsp-sdk",
+    "containerName": "fx-payeedfsp-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "fx-sdk"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn nx run modules-api-svc:start:debug",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/fx-payeedfsp-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `fx-payeedfsp` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/fx-payeedfsp-sdk.env and pairs with `fx-payeedfsp-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `fx-payeedfsp`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/fx-payeedfsp-sdk.env."
+  },
+  {
+    "id": "redis",
+    "containerName": "redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:27.609023698Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379 -> 6379/tcp"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Shared proxy cache for central-ledger & ALS inter-scheme lookups.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "mojaloop-testing-toolkit",
+    "containerName": "mojaloop-testing-toolkit",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit:v18.11.2",
+    "imageRepository": "mojaloop/ml-testing-toolkit",
+    "imageTag": "v18.11.2",
+    "diskSize": "724MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit",
+    "liveStatus": "running",
+    "healthStatus": "healthy",
+    "statusText": "Up (healthy)",
+    "startedAt": "2026-11-10T11:32:19.498844118Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "testing-toolkit",
+      "all-services",
+      "merchant-registry"
+    ],
+    "ports": [
+      "9440 -> 4040/tcp",
+      "9550 -> 5050/tcp"
+    ],
+    "dependsOn": [],
+    "command": "sh -c npm start",
+    "volumes": [
+      "./docker/ml-testing-toolkit/spec_files:/opt/app/spec_files",
+      "./docker/ml-testing-toolkit/test-cases:/opt/app/examples"
+    ],
+    "envVars": [],
+    "shortSummary": "Automated test engine, mock DFSP simulator, OpenAPI validator, and WebSocket event streamer.",
+    "behindTheScenes": "Listens on port 4040 (mock FSP callback server, mapped to host 9440) and port 5050 (control API & Socket.IO, mapped to host 9550). Runs Callback Rule Engine (`rules_callback/default.json` - Rule #223 returns \"Justin Pierre Trudeau\" for pinkbankfsp discovery). Captures all HTTP flows and streams real-time sequence diagrams over `/socket.io/` to the UI.",
+    "developerCustomization": "Edit mock party data in docker/ml-testing-toolkit/spec_files/rules_callback/default.json or test environments in test-cases/environments/default-env.json."
+  },
+  {
+    "id": "mojaloop-testing-toolkit-ui",
+    "containerName": "mojaloop-testing-toolkit-ui",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-ui:v16.2.0",
+    "imageRepository": "mojaloop/ml-testing-toolkit-ui",
+    "imageTag": "v16.2.0",
+    "diskSize": "82.8MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-ui",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:19.907301352Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "testing-toolkit",
+      "all-services",
+      "merchant-registry"
+    ],
+    "ports": [
+      "80/tcp",
+      "9660 -> 6060/tcp"
+    ],
+    "dependsOn": [],
+    "command": "sh /usr/share/nginx/start.sh",
+    "volumes": [],
+    "envVars": [
+      "API_BASE_URL=http://13.63.126.137:9550",
+      "AUTH_ENABLED=FALSE"
+    ],
+    "shortSummary": "Interactive web dashboard hosting Mobile Simulator (/mobilesimulator), Live Monitoring, and Test Reports.",
+    "behindTheScenes": "Serves static React/AntD bundle on port 6060 (mapped to host 9660). Contains the Pink Bank & Green Bank mobile app UI (with frontend default phone number `987654320`), connects via WebSocket to port 9550 for real-time Sequence Diagrams and Pink/Green Bank HTTP logs, and reads persistent reports from MongoDB via TTK API.",
+    "developerCustomization": "Configure `API_BASE_URL` in docker-compose.yml to match the server public IP so remote browsers can connect to port 9550."
+  },
+  {
+    "id": "ttk-provisioning",
+    "containerName": "ml-core-test-harness-ttk-provisioning-1",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "exited",
+    "healthStatus": "none",
+    "statusText": "Exited (0) - Completed",
+    "startedAt": "2026-11-10T11:37:56.599275093Z",
+    "finishedAt": "2026-11-10T11:39:29.998095699Z",
+    "profiles": [
+      "ttk-provisioning",
+      "merchant-registry"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std --save-report true --report-format html --report-target file://reports/ttk-provisioning-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "One-shot headless CLI runner that seeds Hub accounts, currencies, DFSPs, limits, and Oracles after boot.",
+    "behindTheScenes": "Runs `npm run cli` against collections/provisioning with `--labels std` and `default-env.json`. Executed 96 requests across 9 test cases on this server (100/100 assertions passed in 84.1s), saved `reports/ttk-provisioning-report.html` and persisted report into MongoDB (`ttk.reports`), then exited cleanly with code 0.",
+    "developerCustomization": "Edit default-env.json to change currency (XXX/XTS) or participant names, or modify hub_setup.json / participant_sender.json / participant_receiver.json."
+  },
+  {
+    "id": "ttk-provisioning-gp",
+    "containerName": "ttk-provisioning-gp",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-provisioning-gp"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std-gp --save-report true --report-format html --report-target file://reports/ttk-provisioning-gp-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Specialized TTK CLI test/provisioning runner profile `ttk-provisioning-gp` (not invoked in current command).",
+    "behindTheScenes": "Configured to execute targeted test collections (e.g., Golden Path or FX tests) via `npm run cli` against `mojaloop-testing-toolkit:5050`.",
+    "developerCustomization": "Launch on demand via `docker compose run --rm ttk-provisioning-gp`."
+  },
+  {
+    "id": "ttk-provisioning-fx",
+    "containerName": "ttk-provisioning-fx",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-provisioning-fx"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std,fx --save-report true --report-format html --report-target file://reports/ttk-provisioning-fx-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Specialized TTK CLI test/provisioning runner profile `ttk-provisioning-fx` (not invoked in current command).",
+    "behindTheScenes": "Configured to execute targeted test collections (e.g., Golden Path or FX tests) via `npm run cli` against `mojaloop-testing-toolkit:5050`.",
+    "developerCustomization": "Launch on demand via `docker compose run --rm ttk-provisioning-fx`."
+  },
+  {
+    "id": "ttk-provisioning-fx-sdk",
+    "containerName": "ttk-provisioning-fx-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-provisioning-fx-sdk"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std,fx,fx-sdk --save-report true --report-format html --report-target file://reports/ttk-provisioning-fx-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `ttk-provisioning-fx` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/ttk-provisioning-fx-sdk.env and pairs with `ttk-provisioning-fx-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `ttk-provisioning-fx`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/ttk-provisioning-fx-sdk.env."
+  },
+  {
+    "id": "ttk-tests",
+    "containerName": "ml-core-test-harness-ttk-tests-1",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "exited",
+    "healthStatus": "none",
+    "statusText": "Exited (0) - Completed",
+    "startedAt": "2026-11-10T11:39:30.373858967Z",
+    "finishedAt": "2026-11-10T11:40:08.955150034Z",
+    "profiles": [
+      "ttk-tests",
+      "merchant-registry"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler",
+      "ttk-provisioning"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "One-shot headless CLI runner executing end-to-end Golden Path functional tests after provisioning.",
+    "behindTheScenes": "Waited for `ttk-provisioning` to finish (`service_completed_successfully`), then executed `collections/tests` (`--labels std`). Ran 4 requests (31/31 assertions passed, 100.00% in 31.2s), generated `reports/ttk-func-tests-report.html`, and exited with code 0.",
+    "developerCustomization": "Add or modify functional test scenarios inside docker/ml-testing-toolkit/test-cases/collections/tests/."
+  },
+  {
+    "id": "ttk-tests-gp",
+    "containerName": "ttk-tests-gp",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-tests-gp"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler",
+      "ttk-provisioning-gp"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std-gp --report-format html --save-report true --report-target file://reports/ttk-gp-tests-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Specialized TTK CLI test/provisioning runner profile `ttk-tests-gp` (not invoked in current command).",
+    "behindTheScenes": "Configured to execute targeted test collections (e.g., Golden Path or FX tests) via `npm run cli` against `mojaloop-testing-toolkit:5050`.",
+    "developerCustomization": "Launch on demand via `docker compose run --rm ttk-tests-gp`."
+  },
+  {
+    "id": "ttk-fx-tests",
+    "containerName": "ttk-fx-tests",
+    "category": "Testing & Provisioning",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-fx-tests"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler",
+      "ttk-provisioning-fx"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std,fx --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Specialized TTK CLI test/provisioning runner profile `ttk-fx-tests` (not invoked in current command).",
+    "behindTheScenes": "Configured to execute targeted test collections (e.g., Golden Path or FX tests) via `npm run cli` against `mojaloop-testing-toolkit:5050`.",
+    "developerCustomization": "Launch on demand via `docker compose run --rm ttk-fx-tests`."
+  },
+  {
+    "id": "ttk-fx-sdk-tests",
+    "containerName": "ttk-fx-sdk-tests",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "imageRepository": "mojaloop/ml-testing-toolkit-client-lib",
+    "imageTag": "v1.9.1",
+    "diskSize": "596MB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "ttk-fx-sdk-tests"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "mojaloop-testing-toolkit",
+      "central-ledger",
+      "central-handler-position-batch",
+      "ml-api-adapter",
+      "account-lookup-service",
+      "quoting-service",
+      "quoting-service-handler",
+      "ttk-provisioning-fx-sdk"
+    ],
+    "command": "sh -c npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std,fx,fx-sdk --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html",
+    "volumes": [
+      "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections",
+      "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments",
+      "./reports:/opt/app/reports"
+    ],
+    "envVars": [],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `ttk-fx-tests` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/ttk-fx-tests-sdk.env and pairs with `ttk-fx-tests-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `ttk-fx-tests`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/ttk-fx-tests-sdk.env."
+  },
+  {
+    "id": "kafka-debug-ui",
+    "containerName": "kafka-debug-ui",
+    "category": "Debug Tools",
+    "image": "docker.redpanda.com/redpandadata/console:latest",
+    "imageRepository": "docker.redpanda.com/redpandadata/console",
+    "imageTag": "latest",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/redpanda-data/console",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "debug"
+    ],
+    "ports": [
+      "8080:8080"
+    ],
+    "dependsOn": [
+      "kafka"
+    ],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "KAFKA_BROKERS=kafka:29092"
+    ],
+    "shortSummary": "Redpanda Console web UI on port 8080 to inspect Kafka topics, consumer groups, and live messages.",
+    "behindTheScenes": "Connects directly to `kafka:29092` when `--profile debug` is enabled.",
+    "developerCustomization": "Launch on demand with `docker compose --profile debug up -d kafka-debug-ui`."
+  },
+  {
+    "id": "reporting-events-processor-svc",
+    "containerName": "reporting-events-processor-svc",
+    "category": "Finance Portal",
+    "image": "mojaloop/reporting-events-processor-svc:v3.0.0",
+    "imageRepository": "mojaloop/reporting-events-processor-svc",
+    "imageTag": "v3.0.0",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [],
+    "dependsOn": [
+      "objstore"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/reporting-events-processor-svc.js /opt/app/config/default.json && npm start\"",
+    "volumes": [
+      "./docker/config-modifier:/opt/app/config-modifier"
+    ],
+    "envVars": [
+      "EVENT_STORE_DB_HOST=objstore",
+      "EVENT_STORE_DB_PORT=27017",
+      "EVENT_STORE_DB_DATABASE=reporting",
+      "EVENT_STORE_DB_EVENTS_COLLECTION=reporting",
+      "KAFKA_TOPIC_EVENT=topic-event-audit"
+    ],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `reporting-events-processor-svc` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "reporting-hub-bop-api-svc",
+    "containerName": "reporting-hub-bop-api-svc",
+    "category": "Finance Portal",
+    "image": "mojaloop/reporting-hub-bop-api-svc:v2.1.0",
+    "imageRepository": "mojaloop/reporting-hub-bop-api-svc",
+    "imageTag": "v2.1.0",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [
+      "9401:3000"
+    ],
+    "dependsOn": [
+      "objstore"
+    ],
+    "command": "Default Image Entrypoint",
+    "volumes": [
+      "./docker/reporting-hub-bop-api-svc/config:/opt/reporting/config"
+    ],
+    "envVars": [
+      "REPORTING_DB_HOST=mysql",
+      "REPORTING_DB_PORT=3306",
+      "REPORTING_DB_USER=central_ledger",
+      "REPORTING_DB_SCHEMA=central_ledger",
+      "EVENT_STORE_DB_HOST=objstore",
+      "EVENT_STORE_DB_PORT=27017",
+      "EVENT_STORE_DB_DATABASE=reporting",
+      "ALLOW_CREDENTIALS=false",
+      "PRISMA_LOGGING_ENABLED=true",
+      "CORS_WHITELIST=http://localhost:9400"
+    ],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-api-svc` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "fp-proxy",
+    "containerName": "fp-proxy",
+    "category": "Finance Portal",
+    "image": "nginx:alpine",
+    "imageRepository": "nginx",
+    "imageTag": "alpine",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [
+      "9400:80"
+    ],
+    "dependsOn": [
+      "central-ledger",
+      "quoting-service",
+      "reporting-hub-bop-shell"
+    ],
+    "command": "Default Image Entrypoint",
+    "volumes": [
+      "./docker/fp-proxy/nginx.conf:/etc/nginx/nginx.conf:ro"
+    ],
+    "envVars": [],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `fp-proxy` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "reporting-hub-bop-trx-ui",
+    "containerName": "reporting-hub-bop-trx-ui",
+    "category": "Finance Portal",
+    "image": "mojaloop/reporting-hub-bop-trx-ui:v1.7.2",
+    "imageRepository": "mojaloop/reporting-hub-bop-trx-ui",
+    "imageTag": "v1.7.2",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [
+      "9302:8082"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "REACT_APP_API_BASE_URL=http://localhost:9400/graphql"
+    ],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-trx-ui` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "reporting-hub-bop-positions-ui",
+    "containerName": "reporting-hub-bop-positions-ui",
+    "category": "Finance Portal",
+    "image": "mojaloop/reporting-hub-bop-positions-ui:v0.0.6",
+    "imageRepository": "mojaloop/reporting-hub-bop-positions-ui",
+    "imageTag": "v0.0.6",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [
+      "9304:8084"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "CENTRAL_LEDGER_ENDPOINT=http://localhost:9400/central-admin"
+    ],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-positions-ui` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "reporting-hub-bop-shell",
+    "containerName": "reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "image": "mojaloop/reporting-hub-bop-shell:v2.2.3",
+    "imageRepository": "mojaloop/reporting-hub-bop-shell",
+    "imageTag": "v2.2.3",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "AUTH_ENABLED=false",
+      "AUTH_API_BASE_URL=/",
+      "AUTH_MOCK_API=false",
+      "REMOTE_API_BASE_URL=/",
+      "REMOTE_MOCK_API=false",
+      "REMOTE_1_URL=http://localhost:9301",
+      "REMOTE_2_URL=http://localhost:9302",
+      "REMOTE_3_URL=http://localhost:9303",
+      "REMOTE_4_URL=http://localhost:9304"
+    ],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-shell` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "cadvisor",
+    "containerName": "cadvisor",
+    "category": "Finance Portal",
+    "image": "gcr.io/cadvisor/cadvisor:latest",
+    "imageRepository": "gcr.io/cadvisor/cadvisor",
+    "imageTag": "latest",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "finance-portal"
+    ],
+    "ports": [
+      "8082:8080"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [
+      "/:/rootfs:ro",
+      "/var/run:/var/run:rw",
+      "/sys:/sys:ro",
+      "/var/lib/docker/:/var/lib/docker:ro"
+    ],
+    "envVars": [],
+    "shortSummary": "Finance Portal (Business Operations Portal) microservice `cadvisor` (inactive profile).",
+    "behindTheScenes": "Part of the `finance-portal` profile providing GraphQL APIs, micro-frontend UIs for transfers/positions, and event processors for Hub Operators.",
+    "developerCustomization": "Start this stack using `--profile finance-portal`."
+  },
+  {
+    "id": "central-settlement",
+    "containerName": "central-settlement",
+    "category": "Core Switch",
+    "image": "mojaloop/central-settlement:v17.0.6",
+    "imageRepository": "mojaloop/central-settlement",
+    "imageTag": "v17.0.6",
+    "diskSize": "1.23GB",
+    "githubRepo": "https://github.com/mojaloop/central-settlement",
+    "liveStatus": "running",
+    "healthStatus": "starting",
+    "statusText": "Up (starting)",
+    "startedAt": "2026-11-10T11:35:14.917260234Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-settlement",
+      "all-services",
+      "merchant-registry"
+    ],
+    "ports": [
+      "3007/tcp"
+    ],
+    "dependsOn": [
+      "mysql",
+      "kafka",
+      "objstore",
+      "kafka-provisioning"
+    ],
+    "command": "sh -c \"/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-settlement.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-settlement && node src/api/index.js\"",
+    "volumes": [
+      "./docker/wait4:/opt/app/wait4",
+      "./docker/config-modifier:/opt/app/config-modifier",
+      "./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc"
+    ],
+    "envVars": [
+      "LOG_LEVEL=info",
+      "CLEDG_MONGODB__DISABLED=false"
+    ],
+    "shortSummary": "Manages settlement windows, net settlement calculations, and deferred settlement rules.",
+    "behindTheScenes": "Exposes port 3007 and consumes Kafka settlement & rules events (`RulesHandler::processRules`). Live server logs show it actively evaluating interchange fee rules (e.g., 0.60 XTS Wallet-to-Wallet between pinkbankfsp and greenbankfsp). Note: docker-compose healthcheck polls port 3001 instead of 3007, causing Docker status to show \"health: starting\" even though the process is alive and consuming Kafka events!",
+    "developerCustomization": "Configure settlement rules and scripts in docker/config-modifier/configs/central-settlement.js and settlementModels via hub_setup.json."
+  },
+  {
+    "id": "payeefsp-redis",
+    "containerName": "payeefsp-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:22.914256136Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6381 -> 6381/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6381",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `payeefsp-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "payeefsp-sdk",
+    "containerName": "payeefsp-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:30.122048437Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "payeefsp-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/payeefsp-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `payeefsp` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/payeefsp-sdk.env and pairs with `payeefsp-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `payeefsp`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/payeefsp-sdk.env."
+  },
+  {
+    "id": "payerfsp-redis",
+    "containerName": "payerfsp-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:25.835298205Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6383 -> 6383/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6383",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `payerfsp-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "payerfsp-sdk",
+    "containerName": "payerfsp-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:34.071971149Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "payerfsp-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/payerfsp-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `payerfsp` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/payerfsp-sdk.env and pairs with `payerfsp-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `payerfsp`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/payerfsp-sdk.env."
+  },
+  {
+    "id": "testfsp1-redis",
+    "containerName": "testfsp1-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:21.608998189Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6385 -> 6385/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6385",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `testfsp1-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "testfsp1-sdk",
+    "containerName": "testfsp1-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:22.264892635Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-settlement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "testfsp1-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/testfsp1-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `testfsp1` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/testfsp1-sdk.env and pairs with `testfsp1-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `testfsp1`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/testfsp1-sdk.env."
+  },
+  {
+    "id": "testfsp2-redis",
+    "containerName": "testfsp2-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:23.701037188Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6387 -> 6387/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6387",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `testfsp2-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "testfsp2-sdk",
+    "containerName": "testfsp2-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:31.012782994Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-settlement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "testfsp2-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/testfsp2-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `testfsp2` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/testfsp2-sdk.env and pairs with `testfsp2-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `testfsp2`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/testfsp2-sdk.env."
+  },
+  {
+    "id": "testfsp3-redis",
+    "containerName": "testfsp3-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:24.658816844Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6389 -> 6389/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6389",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `testfsp3-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "testfsp3-sdk",
+    "containerName": "testfsp3-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:32.950780592Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-settlement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "testfsp3-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/testfsp3-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `testfsp3` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/testfsp3-sdk.env and pairs with `testfsp3-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `testfsp3`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/testfsp3-sdk.env."
+  },
+  {
+    "id": "testfsp4-redis",
+    "containerName": "testfsp4-redis",
+    "category": "Data & Messaging",
+    "image": "redis:6.2.4-alpine",
+    "imageRepository": "redis",
+    "imageTag": "6.2.4-alpine",
+    "diskSize": "46.4MB",
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:26.815711433Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "6379/tcp",
+      "6391 -> 6391/tcp"
+    ],
+    "dependsOn": [],
+    "command": "redis-server --port 6391",
+    "volumes": [],
+    "envVars": [],
+    "shortSummary": "Dedicated Redis cache storing transient transfer & callback correlation state for `testfsp4-sdk`.",
+    "behindTheScenes": "In-memory key-value store keeping idempotency keys, async callback promises, and state machine transitions fast without hitting MySQL.",
+    "developerCustomization": "Port mappings and memory settings can be adjusted in docker-compose.yml."
+  },
+  {
+    "id": "testfsp4-sdk",
+    "containerName": "testfsp4-sdk",
+    "category": "DFSP Simulator & SDK",
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "imageRepository": "mojaloop/sdk-scheme-adapter",
+    "imageTag": "v24.7.0",
+    "diskSize": "1.22GB",
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "liveStatus": "running",
+    "healthStatus": "none",
+    "statusText": "Up (running)",
+    "startedAt": "2026-11-10T11:32:35.281098235Z",
+    "finishedAt": "0001-01-01T00:00:00Z",
+    "profiles": [
+      "central-settlement",
+      "all-services",
+      "fx",
+      "merchant-registry"
+    ],
+    "ports": [
+      "4000/tcp",
+      "4001/tcp",
+      "4002/tcp"
+    ],
+    "dependsOn": [
+      "testfsp4-redis",
+      "mojaloop-testing-toolkit"
+    ],
+    "command": "yarn start:api-svc",
+    "volumes": [],
+    "envVars": [
+      "env_file: envs/testfsp4-sdk.env"
+    ],
+    "shortSummary": "Scheme Adapter bridging synchronous core banking APIs for `testfsp4` to async Mojaloop FSPIOP callbacks.",
+    "behindTheScenes": "Uses envs/testfsp4-sdk.env and pairs with `testfsp4-redis` to manage request correlation, JWS signing, and two-phase transfer state machines for participant `testfsp4`.",
+    "developerCustomization": "Modify environment configuration in ml-core-test-harness/envs/testfsp4-sdk.env."
+  },
+  {
+    "id": "acquirer-backend",
+    "containerName": "acquirer-backend",
+    "category": "Merchant Registry",
+    "image": "local-build/acquirer-backend:dev",
+    "imageRepository": "local-build/acquirer-backend",
+    "imageTag": "dev",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "5555:5555"
+    ],
+    "dependsOn": [
+      "merchant-db",
+      "minio",
+      "rabbitmq"
+    ],
+    "command": "npm run acquirer-backend:start",
+    "volumes": [],
+    "envVars": [
+      "APP_URL=http://127.0.0.1:5555",
+      "FRONTEND_SET_PASSWORD_URL=http://localhost:5173/set-password",
+      "HOST=0.0.0.0",
+      "PORT=5555",
+      "DB_HOST=merchant-db",
+      "DB_PORT=3306",
+      "DB_USERNAME=root",
+      "DB_PASSWORD=password",
+      "DB_DATABASE=acquirer_db",
+      "S3_ENDPOINT=minio",
+      "S3_PORT=9000",
+      "S3_ACCESS_KEY=minioadmin"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `acquirer-backend` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  },
+  {
+    "id": "acquirer-frontend",
+    "containerName": "acquirer-frontend",
+    "category": "Merchant Registry",
+    "image": "local-build/acquirer-frontend:dev",
+    "imageRepository": "local-build/acquirer-frontend",
+    "imageTag": "dev",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "5173:5173"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "VITE_HOST=0.0.0.0",
+      "VITE_PORT=5173",
+      "VITE_API_URL=http://127.0.0.1:5555/api/v1",
+      "VITE_RECAPTCHA_SITE_KEY=your-recaptcha-site-key"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `acquirer-frontend` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  },
+  {
+    "id": "registry-oracle",
+    "containerName": "registry-oracle",
+    "category": "Merchant Registry",
+    "image": "local-build/registry-oracle:dev",
+    "imageRepository": "local-build/registry-oracle",
+    "imageTag": "dev",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "8888:8888"
+    ],
+    "dependsOn": [
+      "merchant-db",
+      "rabbitmq"
+    ],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "HOST=0.0.0.0",
+      "PORT=8888",
+      "DB_HOST=merchant-db",
+      "DB_PORT=3306",
+      "DB_USERNAME=root",
+      "DB_PASSWORD=password",
+      "DB_DATABASE=registry_db",
+      "RABBITMQ_HOST=rabbitmq",
+      "RABBITMQ_PORT=5672",
+      "RABBITMQ_USERNAME=guest",
+      "RABBITMQ_PASSWORD=guest",
+      "RABBITMQ_QUEUE=acquirer_to_registry"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `registry-oracle` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  },
+  {
+    "id": "rabbitmq",
+    "containerName": "rabbitmq",
+    "category": "Merchant Registry",
+    "image": "rabbitmq:3.12.4-management-alpine",
+    "imageRepository": "rabbitmq",
+    "imageTag": "3.12.4-management-alpine",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "15672:15672",
+      "5672:5672"
+    ],
+    "dependsOn": [],
+    "command": "Default Image Entrypoint",
+    "volumes": [],
+    "envVars": [
+      "RABBITMQ_DEFAULT_USER=guest",
+      "RABBITMQ_DEFAULT_PASS=guest"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `rabbitmq` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  },
+  {
+    "id": "merchant-db",
+    "containerName": "mysql-db",
+    "category": "Merchant Registry",
+    "image": "mysql:8.0.33",
+    "imageRepository": "mysql",
+    "imageTag": "8.0.33",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "3307:3306"
+    ],
+    "dependsOn": [],
+    "command": "--default-authentication-plugin=mysql_native_password",
+    "volumes": [
+      "your_local_path_to_merchant_registry_sql_scripts:/docker-entrypoint-initdb.d"
+    ],
+    "envVars": [
+      "MYSQL_ROOT_PASSWORD=password"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `merchant-db` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  },
+  {
+    "id": "minio",
+    "containerName": "minio",
+    "category": "Merchant Registry",
+    "image": "minio/minio:RELEASE.2023-07-21T21-12-44Z",
+    "imageRepository": "minio/minio",
+    "imageTag": "RELEASE.2023-07-21T21-12-44Z",
+    "diskSize": "N/A (Not pulled)",
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "liveStatus": "inactive",
+    "healthStatus": "not-started",
+    "statusText": "Not Started (Inactive Profile)",
+    "startedAt": "",
+    "finishedAt": "",
+    "profiles": [
+      "merchant-registry"
+    ],
+    "ports": [
+      "9000:9000"
+    ],
+    "dependsOn": [],
+    "command": "server /data",
+    "volumes": [
+      "data:/data"
+    ],
+    "envVars": [
+      "MINIO_ROOT_USER=minioadmin",
+      "MINIO_ROOT_PASSWORD=minioadmin"
+    ],
+    "shortSummary": "Merchant Registry / Acquirer onboarding component `minio` (inactive profile).",
+    "behindTheScenes": "Part of the `merchant-registry` profile handling merchant discovery, document storage (MinIO), async queues (RabbitMQ), and merchant databases.",
+    "developerCustomization": "Requires local build contexts configured in docker-compose.yml and running `--profile merchant-registry`."
+  }
+]

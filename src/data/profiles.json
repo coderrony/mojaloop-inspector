@@ -1,0 +1,430 @@
+[
+  {
+    "name": "all-services",
+    "isExecutedInCommand": true,
+    "description": "Complete core Mojaloop switch stack, simulated DFSP SDKs, datastores, and Testing Toolkit.",
+    "totalCount": 29,
+    "runningCount": 28,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "central-handler-position-batch",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "quoting-service",
+      "quoting-service-handler",
+      "ml-api-adapter",
+      "simulator",
+      "account-lookup-service",
+      "als-msisdn-oracle-svc",
+      "mysql-als",
+      "redis",
+      "mojaloop-testing-toolkit",
+      "mojaloop-testing-toolkit-ui",
+      "central-settlement",
+      "payeefsp-redis",
+      "payeefsp-sdk",
+      "payerfsp-redis",
+      "payerfsp-sdk",
+      "testfsp1-redis",
+      "testfsp1-sdk",
+      "testfsp2-redis",
+      "testfsp2-sdk",
+      "testfsp3-redis",
+      "testfsp3-sdk",
+      "testfsp4-redis",
+      "testfsp4-sdk"
+    ]
+  },
+  {
+    "name": "central-ledger",
+    "isExecutedInCommand": false,
+    "description": "Minimal core ledger + MySQL + MongoDB + Kafka stack.",
+    "totalCount": 5,
+    "runningCount": 4,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql"
+    ]
+  },
+  {
+    "name": "transfer",
+    "isExecutedInCommand": false,
+    "description": "Central ledger stack plus inbound ml-api-adapter gateway.",
+    "totalCount": 6,
+    "runningCount": 5,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "ml-api-adapter"
+    ]
+  },
+  {
+    "name": "discovery",
+    "isExecutedInCommand": false,
+    "description": "Central ledger stack plus ALS, MSISDN oracle, and simulator.",
+    "totalCount": 9,
+    "runningCount": 8,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "simulator",
+      "account-lookup-service",
+      "als-msisdn-oracle-svc",
+      "mysql-als"
+    ]
+  },
+  {
+    "name": "agreement",
+    "isExecutedInCommand": false,
+    "description": "Central ledger stack plus quoting-service and async handler.",
+    "totalCount": 7,
+    "runningCount": 6,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "quoting-service",
+      "quoting-service-handler"
+    ]
+  },
+  {
+    "name": "fx",
+    "isExecutedInCommand": false,
+    "description": "Full core services configured for Foreign Exchange (FX) currency conversion flows.",
+    "totalCount": 26,
+    "runningCount": 25,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "central-ledger",
+      "central-handler-position-batch",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "quoting-service",
+      "quoting-service-handler",
+      "ml-api-adapter",
+      "simulator",
+      "account-lookup-service",
+      "als-msisdn-oracle-svc",
+      "mysql-als",
+      "redis",
+      "payeefsp-redis",
+      "payeefsp-sdk",
+      "payerfsp-redis",
+      "payerfsp-sdk",
+      "testfsp1-redis",
+      "testfsp1-sdk",
+      "testfsp2-redis",
+      "testfsp2-sdk",
+      "testfsp3-redis",
+      "testfsp3-sdk",
+      "testfsp4-redis",
+      "testfsp4-sdk"
+    ]
+  },
+  {
+    "name": "merchant-registry",
+    "isExecutedInCommand": false,
+    "description": "Extended stack including Acquirer backend/frontend, RabbitMQ, MinIO, and Merchant DB.",
+    "totalCount": 37,
+    "runningCount": 28,
+    "exitedCount": 3,
+    "inactiveCount": 6,
+    "services": [
+      "central-ledger",
+      "central-handler-position-batch",
+      "objstore",
+      "kafka-provisioning",
+      "kafka",
+      "mysql",
+      "quoting-service",
+      "quoting-service-handler",
+      "ml-api-adapter",
+      "simulator",
+      "account-lookup-service",
+      "als-msisdn-oracle-svc",
+      "mysql-als",
+      "redis",
+      "mojaloop-testing-toolkit",
+      "mojaloop-testing-toolkit-ui",
+      "ttk-provisioning",
+      "ttk-tests",
+      "central-settlement",
+      "payeefsp-redis",
+      "payeefsp-sdk",
+      "payerfsp-redis",
+      "payerfsp-sdk",
+      "testfsp1-redis",
+      "testfsp1-sdk",
+      "testfsp2-redis",
+      "testfsp2-sdk",
+      "testfsp3-redis",
+      "testfsp3-sdk",
+      "testfsp4-redis",
+      "testfsp4-sdk",
+      "acquirer-backend",
+      "acquirer-frontend",
+      "registry-oracle",
+      "rabbitmq",
+      "merchant-db",
+      "minio"
+    ]
+  },
+  {
+    "name": "quoting-service",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 2 container(s).",
+    "totalCount": 2,
+    "runningCount": 2,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "quoting-service",
+      "quoting-service-handler"
+    ]
+  },
+  {
+    "name": "ml-api-adapter",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 1,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "ml-api-adapter"
+    ]
+  },
+  {
+    "name": "simulator",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 1,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "simulator"
+    ]
+  },
+  {
+    "name": "account-lookup-service",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 2 container(s).",
+    "totalCount": 2,
+    "runningCount": 2,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "account-lookup-service",
+      "mysql-als"
+    ]
+  },
+  {
+    "name": "als-msisdn-oracle-svc",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 2 container(s).",
+    "totalCount": 2,
+    "runningCount": 2,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "als-msisdn-oracle-svc",
+      "mysql-als"
+    ]
+  },
+  {
+    "name": "fx-sdk",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 3 container(s).",
+    "totalCount": 3,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 3,
+    "services": [
+      "fx-provider1-sdk",
+      "fx-payerdfsp-sdk",
+      "fx-payeedfsp-sdk"
+    ]
+  },
+  {
+    "name": "testing-toolkit",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 2 container(s).",
+    "totalCount": 2,
+    "runningCount": 2,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "mojaloop-testing-toolkit",
+      "mojaloop-testing-toolkit-ui"
+    ]
+  },
+  {
+    "name": "ttk-provisioning",
+    "isExecutedInCommand": true,
+    "description": "Runs automated Hub, Currency, Oracle, and DFSP onboarding via ml-testing-toolkit-client-lib.",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "ttk-provisioning"
+    ]
+  },
+  {
+    "name": "ttk-provisioning-gp",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-provisioning-gp"
+    ]
+  },
+  {
+    "name": "ttk-provisioning-fx",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-provisioning-fx"
+    ]
+  },
+  {
+    "name": "ttk-provisioning-fx-sdk",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-provisioning-fx-sdk"
+    ]
+  },
+  {
+    "name": "ttk-tests",
+    "isExecutedInCommand": true,
+    "description": "Executes automated end-to-end Golden Path functional verification tests after provisioning.",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 1,
+    "inactiveCount": 0,
+    "services": [
+      "ttk-tests"
+    ]
+  },
+  {
+    "name": "ttk-tests-gp",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-tests-gp"
+    ]
+  },
+  {
+    "name": "ttk-fx-tests",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-fx-tests"
+    ]
+  },
+  {
+    "name": "ttk-fx-sdk-tests",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 1 container(s).",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "ttk-fx-sdk-tests"
+    ]
+  },
+  {
+    "name": "debug",
+    "isExecutedInCommand": false,
+    "description": "Redpanda Kafka Console web UI for inspecting live Kafka topics and messages.",
+    "totalCount": 1,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 1,
+    "services": [
+      "kafka-debug-ui"
+    ]
+  },
+  {
+    "name": "finance-portal",
+    "isExecutedInCommand": false,
+    "description": "Business Operations Portal (BOP) GraphQL APIs, Micro-frontends, and cAdvisor metrics.",
+    "totalCount": 7,
+    "runningCount": 0,
+    "exitedCount": 0,
+    "inactiveCount": 7,
+    "services": [
+      "reporting-events-processor-svc",
+      "reporting-hub-bop-api-svc",
+      "fp-proxy",
+      "reporting-hub-bop-trx-ui",
+      "reporting-hub-bop-positions-ui",
+      "reporting-hub-bop-shell",
+      "cadvisor"
+    ]
+  },
+  {
+    "name": "central-settlement",
+    "isExecutedInCommand": false,
+    "description": "Targeted profile launching 5 container(s).",
+    "totalCount": 5,
+    "runningCount": 5,
+    "exitedCount": 0,
+    "inactiveCount": 0,
+    "services": [
+      "central-settlement",
+      "testfsp1-sdk",
+      "testfsp2-sdk",
+      "testfsp3-sdk",
+      "testfsp4-sdk"
+    ]
+  }
+]

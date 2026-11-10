@@ -1,0 +1,1760 @@
+{
+  "name": "ml-core-test-harness",
+  "networks": {
+    "mojaloop-net": {
+      "name": "mojaloop-net",
+      "ipam": {}
+    }
+  },
+  "services": {
+    "account-lookup-service": {
+      "profiles": [
+        "account-lookup-service",
+        "discovery",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "account-lookup-service",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/account-lookup-service.js /opt/app/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js account-lookup-service \u0026\u0026 npm run migrate \u0026\u0026 npm run start:all"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALS_DISPLAY_ROUTES": "false",
+        "EVENT_SDK_TRACEID_PER_VENDOR": "false",
+        "LOG_LEVEL": "info"
+      },
+      "image": "mojaloop/account-lookup-service:v17.9.1",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_started",
+          "required": true
+        },
+        "mysql-als": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "simulator": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:4001/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10,
+        "start_period": "40s"
+      }
+    },
+    "als-msisdn-oracle-svc": {
+      "profiles": [
+        "als-msisdn-oracle-svc",
+        "discovery",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "als-msisdn-oracle-svc",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/dist/config/default.json /opt/app/config-modifier/configs/als-msisdn-oracle-svc.js /opt/app/dist/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js als-msisdn-oracle-svc \u0026\u0026 npm run migrate \u0026\u0026 node ./dist/src/cli.js"
+      ],
+      "entrypoint": null,
+      "image": "mojaloop/als-msisdn-oracle-svc:v0.0.18",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_started",
+          "required": true
+        },
+        "mysql-als": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "simulator": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3000/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10,
+        "start_period": "40s"
+      }
+    },
+    "central-handler-position-batch": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "central-handler-position-batch",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js central-ledger \u0026\u0026 node src/handlers/index.js handler --positionbatch"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "CLEDG_MONGODB__DISABLED": "true",
+        "EVENT_SDK_TRACEID_PER_VENDOR": "false",
+        "LOG_LEVEL": "info"
+      },
+      "image": "mojaloop/central-ledger:v19.4.4",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        },
+        "mysql": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 30,
+        "start_period": "30s"
+      }
+    },
+    "central-ledger": {
+      "profiles": [
+        "central-ledger",
+        "transfer",
+        "discovery",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "central-ledger",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js central-ledger \u0026\u0026 node src/api/index.js"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "CLEDG_MONGODB__DISABLED": "false",
+        "LOG_LEVEL": "info"
+      },
+      "image": "mojaloop/central-ledger:v19.4.4",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        },
+        "mysql": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "objstore": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 30,
+        "start_period": "30s"
+      }
+    },
+    "central-settlement": {
+      "profiles": [
+        "central-settlement",
+        "all-services",
+        "merchant-registry"
+      ],
+      "container_name": "central-settlement",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-settlement.js /opt/app/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js central-settlement \u0026\u0026 node src/api/index.js"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "CLEDG_MONGODB__DISABLED": "false",
+        "LOG_LEVEL": "info"
+      },
+      "image": "mojaloop/central-settlement:v17.0.6",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        },
+        "mysql": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "objstore": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 30,
+        "start_period": "30s"
+      }
+    },
+    "kafka": {
+      "profiles": [
+        "central-ledger",
+        "transfer",
+        "discovery",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "kafka",
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_PLAINTEXT_LISTENER": "yes",
+        "KAFKA_ADVERTISED_HOST_NAME": "kafka",
+        "KAFKA_CFG_ADVERTISED_LISTENERS": "LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://localhost:9092",
+        "KAFKA_CFG_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
+        "KAFKA_CFG_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:9093",
+        "KAFKA_CFG_INTER_BROKER_LISTENER_NAME": "LISTENER_DOCKER",
+        "KAFKA_CFG_LISTENERS": "CONTROLLER://:9093,LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://:9092",
+        "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,LISTENER_DOCKER:PLAINTEXT,LISTENER_EXTERN:PLAINTEXT",
+        "KAFKA_CFG_MESSAGE_MAX_BYTES": "200000000",
+        "KAFKA_CFG_NODE_ID": "1",
+        "KAFKA_CFG_PROCESS_ROLES": "broker,controller",
+        "KAFKA_ENABLE_KRAFT": "true",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1"
+      },
+      "image": "docker.io/bitnamilegacy/kafka:3.9.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh",
+          "--bootstrap-server",
+          "kafka:9092"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10,
+        "start_period": "40s"
+      }
+    },
+    "kafka-provisioning": {
+      "profiles": [
+        "central-ledger",
+        "transfer",
+        "discovery",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "kafka-provisioning",
+      "command": [
+        "bash",
+        "/tmp/kafka/scripts/provision.sh"
+      ],
+      "entrypoint": null,
+      "image": "docker.io/bitnamilegacy/kafka:3.9.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/kafka/scripts",
+          "target": "/tmp/kafka/scripts",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "ml-api-adapter": {
+      "profiles": [
+        "ml-api-adapter",
+        "transfer",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "ml-api-adapter",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/ml-api-adapter.js /opt/app/config/default.json \u0026\u0026 /opt/app/wait4/wait4.js ml-api-adapter \u0026\u0026 node src/api/index.js"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "LOG_LEVEL": "info"
+      },
+      "image": "mojaloop/ml-api-adapter:v16.4.2",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/wait4",
+          "target": "/opt/app/wait4",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/secrets/jwsSigningKey.key",
+          "target": "/opt/app/secrets/jwsSigningKey.key",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3000/health -O /dev/null || exit 1"
+        ],
+        "timeout": "30s",
+        "interval": "30s",
+        "retries": 30,
+        "start_period": "30s"
+      }
+    },
+    "mojaloop-testing-toolkit": {
+      "profiles": [
+        "testing-toolkit",
+        "all-services",
+        "merchant-registry"
+      ],
+      "container_name": "mojaloop-testing-toolkit",
+      "command": [
+        "sh",
+        "-c",
+        "npm start"
+      ],
+      "entrypoint": null,
+      "image": "mojaloop/ml-testing-toolkit:v18.11.2",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/spec_files",
+          "target": "/opt/app/spec_files",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/test-cases",
+          "target": "/opt/app/examples",
+          "bind": {}
+        }
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "nc -z -v localhost 4040"
+        ],
+        "timeout": "10s",
+        "interval": "5s",
+        "retries": 10,
+        "start_period": "10s"
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 4040,
+          "published": "9440",
+          "protocol": "tcp"
+        },
+        {
+          "mode": "ingress",
+          "target": 5050,
+          "published": "9550",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "mojaloop-testing-toolkit-ui": {
+      "profiles": [
+        "testing-toolkit",
+        "all-services",
+        "merchant-registry"
+      ],
+      "container_name": "mojaloop-testing-toolkit-ui",
+      "command": [
+        "sh",
+        "/usr/share/nginx/start.sh"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "API_BASE_URL": "http://13.63.126.137:9550",
+        "AUTH_ENABLED": "FALSE"
+      },
+      "image": "mojaloop/ml-testing-toolkit-ui:v16.2.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6060,
+          "published": "9660",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "mysql": {
+      "profiles": [
+        "central-ledger",
+        "transfer",
+        "discovery",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "mysql",
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "MYSQL_ALLOW_EMPTY_PASSWORD": "true",
+        "MYSQL_DATABASE": "central_ledger",
+        "MYSQL_PASSWORD": "password",
+        "MYSQL_USER": "central_ledger"
+      },
+      "image": "mysql/mysql-server:8.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/sql-init",
+          "target": "/docker-entrypoint-initdb.d",
+          "bind": {}
+        }
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "mysql"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10,
+        "start_period": "40s"
+      }
+    },
+    "mysql-als": {
+      "profiles": [
+        "account-lookup-service",
+        "als-msisdn-oracle-svc",
+        "discovery",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "mysql-als",
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "MYSQL_ALLOW_EMPTY_PASSWORD": "true",
+        "MYSQL_DATABASE": "account_lookup",
+        "MYSQL_PASSWORD": "password",
+        "MYSQL_USER": "account_lookup"
+      },
+      "image": "mysql/mysql-server:8.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/sql-als-init",
+          "target": "/docker-entrypoint-initdb.d",
+          "bind": {}
+        }
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "mysql-als"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10,
+        "start_period": "40s"
+      }
+    },
+    "objstore": {
+      "profiles": [
+        "central-ledger",
+        "transfer",
+        "discovery",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "objstore",
+      "command": null,
+      "entrypoint": null,
+      "image": "mongo:8.0.6",
+      "logging": {
+        "driver": "none"
+      },
+      "networks": {
+        "mojaloop-net": null
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "mongosh --eval 'db.runCommand(\"ping\").ok' localhost:27017/test --quiet"
+        ],
+        "timeout": "10s",
+        "interval": "10s",
+        "retries": 5,
+        "start_period": "40s"
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 27017,
+          "published": "27017",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "payeefsp-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "payeefsp-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6381"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6381,
+          "published": "6381",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "payeefsp-sdk": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "payeefsp-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://payeefsp-redis:6381",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "payeefsp",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "payeefsp-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "payerfsp-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "payerfsp-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6383"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6383,
+          "published": "6383",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "payerfsp-sdk": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "payerfsp-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://payerfsp-redis:6383",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "payerfsp",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "payerfsp-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "quoting-service": {
+      "profiles": [
+        "quoting-service",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "quoting-service",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json \u0026\u0026 node src/index.js"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "UV_THREADPOOL_SIZE": "20"
+      },
+      "image": "mojaloop/quoting-service:v17.8.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        },
+        "mysql": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3002/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "15s",
+        "retries": 30
+      }
+    },
+    "quoting-service-handler": {
+      "profiles": [
+        "quoting-service",
+        "agreement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "quoting-service-handler",
+      "command": [
+        "sh",
+        "-c",
+        "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json \u0026\u0026 npm run start:handlers"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "UV_THREADPOOL_SIZE": "20"
+      },
+      "image": "mojaloop/quoting-service:v17.8.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/config-modifier",
+          "target": "/opt/app/config-modifier",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/event_sdk/config.json",
+          "target": "/opt/app/.EVENT_SDKrc",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "central-ledger": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka": {
+          "condition": "service_started",
+          "required": true
+        },
+        "kafka-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        },
+        "mysql": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "quoting-service": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:3003/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "15s",
+        "retries": 30
+      }
+    },
+    "redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "redis",
+      "command": null,
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6379,
+          "published": "6379",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "simulator": {
+      "profiles": [
+        "simulator",
+        "discovery",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "simulator",
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "LOG_LEVEL": "info",
+        "PARTIES_ENDPOINT": "http://account-lookup-service:4002",
+        "QUOTES_ENDPOINT": "http://quoting-service:3002",
+        "TRANSACTION_REQUESTS_ENDPOINT": "http://transaction-request-service:4003",
+        "TRANSFERS_ENDPOINT": "http://ml-api-adapter:3000",
+        "TRANSFERS_FULFIL_RESPONSE_DISABLED": "false"
+      },
+      "image": "mojaloop/simulator:v12.2.4",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "wget -q http://127.0.0.1:8444/health -O /dev/null || exit 1"
+        ],
+        "timeout": "20s",
+        "interval": "30s",
+        "retries": 10
+      }
+    },
+    "testfsp1-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp1-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6385"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6385,
+          "published": "6385",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "testfsp1-sdk": {
+      "profiles": [
+        "central-settlement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp1-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://testfsp1-redis:6385",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "testfsp1",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "testfsp1-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "testfsp2-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp2-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6387"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6387,
+          "published": "6387",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "testfsp2-sdk": {
+      "profiles": [
+        "central-settlement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp2-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://testfsp2-redis:6387",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "testfsp2",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "testfsp2-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "testfsp3-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp3-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6389"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6389,
+          "published": "6389",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "testfsp3-sdk": {
+      "profiles": [
+        "central-settlement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp3-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://testfsp3-redis:6389",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "testfsp3",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "testfsp3-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "testfsp4-redis": {
+      "profiles": [
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp4-redis",
+      "command": [
+        "redis-server",
+        "--port",
+        "6391"
+      ],
+      "entrypoint": null,
+      "image": "redis:6.2.4-alpine",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 6391,
+          "published": "6391",
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "testfsp4-sdk": {
+      "profiles": [
+        "central-settlement",
+        "all-services",
+        "fx",
+        "merchant-registry"
+      ],
+      "container_name": "testfsp4-sdk",
+      "command": [
+        "yarn",
+        "start:api-svc"
+      ],
+      "entrypoint": null,
+      "environment": {
+        "ALLOW_TRANSFER_WITHOUT_QUOTE": "true",
+        "ALS_ENDPOINT": "account-lookup-service:4002",
+        "API_TYPE": "fspiop",
+        "AUTO_ACCEPT_PARTICIPANTS_PUT": "false",
+        "AUTO_ACCEPT_PARTY": "true",
+        "AUTO_ACCEPT_QUOTES": "true",
+        "AUTO_ACCEPT_R2P_BUSINESS_QUOTES": "false",
+        "AUTO_ACCEPT_R2P_DEVICE_OTP": "false",
+        "AUTO_ACCEPT_R2P_PARTY": "true",
+        "BACKEND_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "BACKEND_ENDPOINT": "mojaloop-testing-toolkit:4040/backend",
+        "BACKEND_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "BACKEND_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "CACHE_URL": "redis://testfsp4-redis:6391",
+        "CHECK_ILP": "true",
+        "DFSP_ID": "testfsp4",
+        "ENABLE_BACKEND_EVENT_HANDLER": "false",
+        "ENABLE_FSPIOP_EVENT_HANDLER": "false",
+        "ENABLE_OAUTH_TOKEN_ENDPOINT": "false",
+        "ENABLE_TEST_FEATURES": "true",
+        "EXPIRY_SECONDS": "60",
+        "FSPIOP_API_SERVER_MAX_REQUEST_BYTES": "209715200",
+        "FSPIOP_EVENT_CONSUMER_BROKER_LIST": "kafka:29092",
+        "FSPIOP_EVENT_PRODUCER_BROKER_LIST": "kafka:29092",
+        "FX_QUOTES_ENDPOINT": "quoting-service:3002",
+        "FX_TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "ILP_SECRET": "Quaixohyaesahju3thivuiChai5cahng",
+        "ILP_VERSION": "1",
+        "INBOUND_LISTEN_PORT": "4000",
+        "INBOUND_MUTUAL_TLS_ENABLED": "false",
+        "JWS_SIGN": "false",
+        "JWS_SIGNING_KEY_PATH": "secrets/jwsSigningKey.key",
+        "JWS_SIGN_PUT_PARTIES": "false",
+        "JWS_VERIFICATION_KEYS_DIRECTORY": "secrets/jwsVerificationKeys",
+        "LOG_INDENT": "0",
+        "MGMT_API_WS_PORT": "4005",
+        "MGMT_API_WS_URL": "mock-management-svc",
+        "OAUTH_CLIENT_KEY": "",
+        "OAUTH_CLIENT_SECRET": "",
+        "OAUTH_REFRESH_SECONDS": "3600",
+        "OAUTH_TOKEN_ENDPOINT": "",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_KEY": "test-client-key",
+        "OAUTH_TOKEN_ENDPOINT_CLIENT_SECRET": "test-client-secret",
+        "OAUTH_TOKEN_ENDPOINT_LISTEN_PORT": "6000",
+        "OUTBOUND_LISTEN_PORT": "4001",
+        "OUTBOUND_MUTUAL_TLS_ENABLED": "false",
+        "PEER_ENDPOINT": "mojaloop-testing-toolkit:4040",
+        "PM4ML_ENABLED": "false",
+        "QUOTES_ENDPOINT": "quoting-service:3002",
+        "REJECT_EXPIRED_QUOTE_RESPONSES": "false",
+        "REJECT_EXPIRED_TRANSFER_FULFILS": "false",
+        "REJECT_TRANSFERS_ON_EXPIRED_QUOTES": "false",
+        "REQUEST_PROCESSING_TIMEOUT_SECONDS": "30",
+        "RESERVE_NOTIFICATION": "false",
+        "RESOURCE_VERSIONS": "transfers=2.0,quotes=2.0,participants=1.1,parties=2.0,transactionRequests=1.1",
+        "TEST_LISTEN_PORT": "4002",
+        "TRANSFERS_ENDPOINT": "ml-api-adapter:3000",
+        "USE_QUOTE_SOURCE_FSP_AS_TRANSFER_PAYEE_FSP": "false",
+        "VALIDATE_INBOUND_JWS": "false",
+        "VALIDATE_INBOUND_PUT_PARTIES_JWS": "false",
+        "WSO2_BEARER_TOKEN": "7718fa9b-be13-3fe7-87f0-a12cf1628168"
+      },
+      "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "depends_on": {
+        "mojaloop-testing-toolkit": {
+          "condition": "service_started",
+          "required": true
+        },
+        "testfsp4-redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      }
+    },
+    "ttk-provisioning": {
+      "profiles": [
+        "ttk-provisioning",
+        "merchant-registry"
+      ],
+      "command": [
+        "sh",
+        "-c",
+        "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std --save-report true --report-format html --report-target file://reports/ttk-provisioning-report.html"
+      ],
+      "entrypoint": null,
+      "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/test-cases/collections",
+          "target": "/opt/app/collections",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/test-cases/environments",
+          "target": "/opt/app/environments",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/reports",
+          "target": "/opt/app/reports",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "account-lookup-service": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "central-handler-position-batch": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "central-ledger": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "ml-api-adapter": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "mojaloop-testing-toolkit": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "quoting-service": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "quoting-service-handler": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      }
+    },
+    "ttk-tests": {
+      "profiles": [
+        "ttk-tests",
+        "merchant-registry"
+      ],
+      "command": [
+        "sh",
+        "-c",
+        "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html"
+      ],
+      "entrypoint": null,
+      "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+      "networks": {
+        "mojaloop-net": null
+      },
+      "user": "root",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/test-cases/collections",
+          "target": "/opt/app/collections",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/docker/ml-testing-toolkit/test-cases/environments",
+          "target": "/opt/app/environments",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/ubuntu/ml-core-test-harness/reports",
+          "target": "/opt/app/reports",
+          "bind": {}
+        }
+      ],
+      "depends_on": {
+        "account-lookup-service": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "central-handler-position-batch": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "central-ledger": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "ml-api-adapter": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "mojaloop-testing-toolkit": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "quoting-service": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "quoting-service-handler": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "ttk-provisioning": {
+          "condition": "service_completed_successfully",
+          "required": true
+        }
+      }
+    }
+  }
+}

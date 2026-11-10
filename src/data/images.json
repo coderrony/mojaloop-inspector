@@ -1,0 +1,786 @@
+[
+  {
+    "image": "mojaloop/sdk-scheme-adapter:v24.7.0",
+    "repository": "mojaloop/sdk-scheme-adapter",
+    "tag": "v24.7.0",
+    "imageId": "310daa7d67b1",
+    "diskUsage": "1.22GB",
+    "contentSize": "255MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/sdk-scheme-adapter",
+    "category": "DFSP Simulator & SDK",
+    "role": "Scheme Adapter bridging synchronous core banking APIs for `fx-provider1` to async Mojaloop FSPIOP callbacks.",
+    "containers": [
+      {
+        "id": "fx-provider1-sdk",
+        "containerName": "fx-provider1-sdk",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "fx-payerdfsp-sdk",
+        "containerName": "fx-payerdfsp-sdk",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "fx-payeedfsp-sdk",
+        "containerName": "fx-payeedfsp-sdk",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "payeefsp-sdk",
+        "containerName": "payeefsp-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "payerfsp-sdk",
+        "containerName": "payerfsp-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp1-sdk",
+        "containerName": "testfsp1-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp2-sdk",
+        "containerName": "testfsp2-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp3-sdk",
+        "containerName": "testfsp3-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp4-sdk",
+        "containerName": "testfsp4-sdk",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/ml-testing-toolkit-client-lib:v1.9.1",
+    "repository": "mojaloop/ml-testing-toolkit-client-lib",
+    "tag": "v1.9.1",
+    "imageId": "a5d102a4818b",
+    "diskUsage": "596MB",
+    "contentSize": "97.1MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-client-lib",
+    "category": "Testing & Provisioning",
+    "role": "One-shot headless CLI runner that seeds Hub accounts, currencies, DFSPs, limits, and Oracles after boot.",
+    "containers": [
+      {
+        "id": "ttk-provisioning",
+        "containerName": "ml-core-test-harness-ttk-provisioning-1",
+        "liveStatus": "exited",
+        "healthStatus": "none",
+        "statusText": "Exited (0) - Completed"
+      },
+      {
+        "id": "ttk-provisioning-gp",
+        "containerName": "ttk-provisioning-gp",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "ttk-provisioning-fx",
+        "containerName": "ttk-provisioning-fx",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "ttk-provisioning-fx-sdk",
+        "containerName": "ttk-provisioning-fx-sdk",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "ttk-tests",
+        "containerName": "ml-core-test-harness-ttk-tests-1",
+        "liveStatus": "exited",
+        "healthStatus": "none",
+        "statusText": "Exited (0) - Completed"
+      },
+      {
+        "id": "ttk-tests-gp",
+        "containerName": "ttk-tests-gp",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "ttk-fx-tests",
+        "containerName": "ttk-fx-tests",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      },
+      {
+        "id": "ttk-fx-sdk-tests",
+        "containerName": "ttk-fx-sdk-tests",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "redis:6.2.4-alpine",
+    "repository": "redis",
+    "tag": "6.2.4-alpine",
+    "imageId": "0039796b887f",
+    "diskUsage": "46.4MB",
+    "contentSize": "10.9MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://hub.docker.com/_/redis",
+    "category": "Data & Messaging",
+    "role": "Shared proxy cache for central-ledger & ALS inter-scheme lookups.",
+    "containers": [
+      {
+        "id": "redis",
+        "containerName": "redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "payeefsp-redis",
+        "containerName": "payeefsp-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "payerfsp-redis",
+        "containerName": "payerfsp-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp1-redis",
+        "containerName": "testfsp1-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp2-redis",
+        "containerName": "testfsp2-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp3-redis",
+        "containerName": "testfsp3-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      },
+      {
+        "id": "testfsp4-redis",
+        "containerName": "testfsp4-redis",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      }
+    ]
+  },
+  {
+    "image": "docker.io/bitnamilegacy/kafka:3.9.0",
+    "repository": "docker.io/bitnamilegacy/kafka",
+    "tag": "3.9.0",
+    "imageId": "55df55bfc7ed",
+    "diskUsage": "697MB",
+    "contentSize": "231MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/bitnami/containers/tree/main/bitnami/kafka",
+    "category": "Data & Messaging",
+    "role": "One-shot init container that pre-creates all required Mojaloop Kafka topics and partitions.",
+    "containers": [
+      {
+        "id": "kafka-provisioning",
+        "containerName": "kafka-provisioning",
+        "liveStatus": "exited",
+        "healthStatus": "none",
+        "statusText": "Exited (0) - Completed"
+      },
+      {
+        "id": "kafka",
+        "containerName": "kafka",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/central-ledger:v19.4.4",
+    "repository": "mojaloop/central-ledger",
+    "tag": "v19.4.4",
+    "imageId": "0ebd03c6f8c9",
+    "diskUsage": "964MB",
+    "contentSize": "244MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/central-ledger",
+    "category": "Core Switch",
+    "role": "Core financial ledger managing participant accounts, limits, positions, and 2-phase commit transfers.",
+    "containers": [
+      {
+        "id": "central-ledger",
+        "containerName": "central-ledger",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      },
+      {
+        "id": "central-handler-position-batch",
+        "containerName": "central-handler-position-batch",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/quoting-service:v17.8.0",
+    "repository": "mojaloop/quoting-service",
+    "tag": "v17.8.0",
+    "imageId": "3351bb36cd15",
+    "diskUsage": "1.08GB",
+    "contentSize": "255MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/quoting-service",
+    "category": "Core Switch",
+    "role": "Handles inter-DFSP quote negotiations, fee calculation, and cryptographic ILP conditions.",
+    "containers": [
+      {
+        "id": "quoting-service",
+        "containerName": "quoting-service",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      },
+      {
+        "id": "quoting-service-handler",
+        "containerName": "quoting-service-handler",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mysql/mysql-server:8.0",
+    "repository": "mysql/mysql-server",
+    "tag": "8.0",
+    "imageId": "d6c8301b7834",
+    "diskUsage": "698MB",
+    "contentSize": "166MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://hub.docker.com/_/mysql",
+    "category": "Data & Messaging",
+    "role": "Primary MySQL 8.0 relational database housing the `central_ledger` schema (108 tables).",
+    "containers": [
+      {
+        "id": "mysql",
+        "containerName": "mysql",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      },
+      {
+        "id": "mysql-als",
+        "containerName": "mysql-als",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "docker.redpanda.com/redpandadata/console:latest",
+    "repository": "docker.redpanda.com/redpandadata/console",
+    "tag": "latest",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/redpanda-data/console",
+    "category": "Debug Tools",
+    "role": "Redpanda Console web UI on port 8080 to inspect Kafka topics, consumer groups, and live messages.",
+    "containers": [
+      {
+        "id": "kafka-debug-ui",
+        "containerName": "kafka-debug-ui",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "gcr.io/cadvisor/cadvisor:latest",
+    "repository": "gcr.io/cadvisor/cadvisor",
+    "tag": "latest",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `cadvisor` (inactive profile).",
+    "containers": [
+      {
+        "id": "cadvisor",
+        "containerName": "cadvisor",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "local-build/acquirer-backend:dev",
+    "repository": "local-build/acquirer-backend",
+    "tag": "dev",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `acquirer-backend` (inactive profile).",
+    "containers": [
+      {
+        "id": "acquirer-backend",
+        "containerName": "acquirer-backend",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "local-build/acquirer-frontend:dev",
+    "repository": "local-build/acquirer-frontend",
+    "tag": "dev",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `acquirer-frontend` (inactive profile).",
+    "containers": [
+      {
+        "id": "acquirer-frontend",
+        "containerName": "acquirer-frontend",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "local-build/registry-oracle:dev",
+    "repository": "local-build/registry-oracle",
+    "tag": "dev",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `registry-oracle` (inactive profile).",
+    "containers": [
+      {
+        "id": "registry-oracle",
+        "containerName": "registry-oracle",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "minio/minio:RELEASE.2023-07-21T21-12-44Z",
+    "repository": "minio/minio",
+    "tag": "RELEASE.2023-07-21T21-12-44Z",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `minio` (inactive profile).",
+    "containers": [
+      {
+        "id": "minio",
+        "containerName": "minio",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/account-lookup-service:v17.9.1",
+    "repository": "mojaloop/account-lookup-service",
+    "tag": "v17.9.1",
+    "imageId": "b1f2f1ae7689",
+    "diskUsage": "1.23GB",
+    "contentSize": "275MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/account-lookup-service",
+    "category": "Core Switch",
+    "role": "Party discovery & routing directory mapping identifiers (MSISDN, Account ID) to DFSPs.",
+    "containers": [
+      {
+        "id": "account-lookup-service",
+        "containerName": "account-lookup-service",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/als-msisdn-oracle-svc:v0.0.18",
+    "repository": "mojaloop/als-msisdn-oracle-svc",
+    "tag": "v0.0.18",
+    "imageId": "cd6041da8e58",
+    "diskUsage": "902MB",
+    "contentSize": "137MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/als-msisdn-oracle-svc",
+    "category": "Core Switch",
+    "role": "Phone number (MSISDN) oracle service mapping mobile numbers to participant FSP IDs.",
+    "containers": [
+      {
+        "id": "als-msisdn-oracle-svc",
+        "containerName": "als-msisdn-oracle-svc",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/central-settlement:v17.0.6",
+    "repository": "mojaloop/central-settlement",
+    "tag": "v17.0.6",
+    "imageId": "9edb8ea895f7",
+    "diskUsage": "1.23GB",
+    "contentSize": "285MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/central-settlement",
+    "category": "Core Switch",
+    "role": "Manages settlement windows, net settlement calculations, and deferred settlement rules.",
+    "containers": [
+      {
+        "id": "central-settlement",
+        "containerName": "central-settlement",
+        "liveStatus": "running",
+        "healthStatus": "starting",
+        "statusText": "Up (starting)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/ml-api-adapter:v16.4.2",
+    "repository": "mojaloop/ml-api-adapter",
+    "tag": "v16.4.2",
+    "imageId": "0c4eab2fb67d",
+    "diskUsage": "1.16GB",
+    "contentSize": "265MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/ml-api-adapter",
+    "category": "Core Switch",
+    "role": "Inbound FSPIOP REST API gateway validating transfer requests and publishing events to Kafka.",
+    "containers": [
+      {
+        "id": "ml-api-adapter",
+        "containerName": "ml-api-adapter",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/ml-testing-toolkit-ui:v16.2.0",
+    "repository": "mojaloop/ml-testing-toolkit-ui",
+    "tag": "v16.2.0",
+    "imageId": "f1720b24d5f5",
+    "diskUsage": "82.8MB",
+    "contentSize": "19MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit-ui",
+    "category": "Testing & Provisioning",
+    "role": "Interactive web dashboard hosting Mobile Simulator (/mobilesimulator), Live Monitoring, and Test Reports.",
+    "containers": [
+      {
+        "id": "mojaloop-testing-toolkit-ui",
+        "containerName": "mojaloop-testing-toolkit-ui",
+        "liveStatus": "running",
+        "healthStatus": "none",
+        "statusText": "Up (running)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/ml-testing-toolkit:v18.11.2",
+    "repository": "mojaloop/ml-testing-toolkit",
+    "tag": "v18.11.2",
+    "imageId": "79d4fbf63764",
+    "diskUsage": "724MB",
+    "contentSize": "112MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/ml-testing-toolkit",
+    "category": "Testing & Provisioning",
+    "role": "Automated test engine, mock DFSP simulator, OpenAPI validator, and WebSocket event streamer.",
+    "containers": [
+      {
+        "id": "mojaloop-testing-toolkit",
+        "containerName": "mojaloop-testing-toolkit",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/reporting-events-processor-svc:v3.0.0",
+    "repository": "mojaloop/reporting-events-processor-svc",
+    "tag": "v3.0.0",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `reporting-events-processor-svc` (inactive profile).",
+    "containers": [
+      {
+        "id": "reporting-events-processor-svc",
+        "containerName": "reporting-events-processor-svc",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/reporting-hub-bop-api-svc:v2.1.0",
+    "repository": "mojaloop/reporting-hub-bop-api-svc",
+    "tag": "v2.1.0",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-api-svc` (inactive profile).",
+    "containers": [
+      {
+        "id": "reporting-hub-bop-api-svc",
+        "containerName": "reporting-hub-bop-api-svc",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/reporting-hub-bop-positions-ui:v0.0.6",
+    "repository": "mojaloop/reporting-hub-bop-positions-ui",
+    "tag": "v0.0.6",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-positions-ui` (inactive profile).",
+    "containers": [
+      {
+        "id": "reporting-hub-bop-positions-ui",
+        "containerName": "reporting-hub-bop-positions-ui",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/reporting-hub-bop-shell:v2.2.3",
+    "repository": "mojaloop/reporting-hub-bop-shell",
+    "tag": "v2.2.3",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-shell` (inactive profile).",
+    "containers": [
+      {
+        "id": "reporting-hub-bop-shell",
+        "containerName": "reporting-hub-bop-shell",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/reporting-hub-bop-trx-ui:v1.7.2",
+    "repository": "mojaloop/reporting-hub-bop-trx-ui",
+    "tag": "v1.7.2",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `reporting-hub-bop-trx-ui` (inactive profile).",
+    "containers": [
+      {
+        "id": "reporting-hub-bop-trx-ui",
+        "containerName": "reporting-hub-bop-trx-ui",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "mojaloop/simulator:v12.2.4",
+    "repository": "mojaloop/simulator",
+    "tag": "v12.2.4",
+    "imageId": "5da1f029a406",
+    "diskUsage": "426MB",
+    "contentSize": "80.4MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://github.com/mojaloop/simulator",
+    "category": "DFSP Simulator & SDK",
+    "role": "Generic mock participant backend simulating core banking responses for quotes, parties, and transfers.",
+    "containers": [
+      {
+        "id": "simulator",
+        "containerName": "simulator",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mongo:8.0.6",
+    "repository": "mongo",
+    "tag": "8.0.6",
+    "imageId": "ab6556e6d71d",
+    "diskUsage": "1.19GB",
+    "contentSize": "293MB",
+    "inUseOnServer": true,
+    "githubRepo": "https://hub.docker.com/_/mongo",
+    "category": "Data & Messaging",
+    "role": "MongoDB 8.0 document store persisting central-ledger audit events (`mlos`) and TTK reports (`ttk`).",
+    "containers": [
+      {
+        "id": "objstore",
+        "containerName": "objstore",
+        "liveStatus": "running",
+        "healthStatus": "healthy",
+        "statusText": "Up (healthy)"
+      }
+    ]
+  },
+  {
+    "image": "mysql:8.0.33",
+    "repository": "mysql",
+    "tag": "8.0.33",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `merchant-db` (inactive profile).",
+    "containers": [
+      {
+        "id": "merchant-db",
+        "containerName": "mysql-db",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "nginx:alpine",
+    "repository": "nginx",
+    "tag": "alpine",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/reporting-hub-bop-shell",
+    "category": "Finance Portal",
+    "role": "Finance Portal (Business Operations Portal) microservice `fp-proxy` (inactive profile).",
+    "containers": [
+      {
+        "id": "fp-proxy",
+        "containerName": "fp-proxy",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  },
+  {
+    "image": "rabbitmq:3.12.4-management-alpine",
+    "repository": "rabbitmq",
+    "tag": "3.12.4-management-alpine",
+    "imageId": "Not pulled on host",
+    "diskUsage": "Not pulled",
+    "contentSize": "N/A",
+    "inUseOnServer": false,
+    "githubRepo": "https://github.com/mojaloop/merchant-registry-svc",
+    "category": "Merchant Registry",
+    "role": "Merchant Registry / Acquirer onboarding component `rabbitmq` (inactive profile).",
+    "containers": [
+      {
+        "id": "rabbitmq",
+        "containerName": "rabbitmq",
+        "liveStatus": "inactive",
+        "healthStatus": "not-started",
+        "statusText": "Not Started (Inactive Profile)"
+      }
+    ]
+  }
+]

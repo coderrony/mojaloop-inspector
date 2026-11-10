@@ -1,0 +1,1311 @@
+version: "3.7"
+
+networks:
+  mojaloop-net:
+    name: mojaloop-net
+
+services:
+  ## Switch
+  central-ledger:
+    image: mojaloop/central-ledger:${CENTRAL_LEDGER_VERSION}
+    container_name: central-ledger
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-ledger && node src/api/index.js"
+    # ports:
+    # - "3001:3001"
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    environment:
+      - LOG_LEVEL=info
+      - CLEDG_MONGODB__DISABLED=false
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      objstore:
+        condition: service_healthy
+      kafka-provisioning:
+        condition: service_completed_successfully
+    healthcheck:
+      test: wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 30s
+      start_period: 30s
+    user: root
+    profiles:
+      - central-ledger
+      - transfer
+      - discovery
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  central-handler-position-batch:
+    image: mojaloop/central-ledger:${CENTRAL_LEDGER_VERSION}
+    container_name: central-handler-position-batch
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-ledger.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-ledger && node src/handlers/index.js handler --positionbatch"
+    # ports:
+    #   - "3001:3001"
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    environment:
+      - LOG_LEVEL=info
+      - CLEDG_MONGODB__DISABLED=true
+      - EVENT_SDK_TRACEID_PER_VENDOR=false
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      kafka-provisioning:
+        condition: service_completed_successfully
+    healthcheck:
+      test: wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 30s
+      start_period: 30s
+    user: root
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  objstore:
+    image: mongo:${DEP_MONGO_VERSION}
+    container_name: objstore
+    ports:
+      - "27017:27017"
+    networks:
+      - mojaloop-net
+    logging:
+      driver: none
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok' localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    profiles:
+      - central-ledger
+      - transfer
+      - discovery
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  kafka-provisioning:
+    container_name: kafka-provisioning
+    networks:
+      - mojaloop-net
+    image: docker.io/bitnamilegacy/kafka:${DEP_KAFKA_VERSION}
+    depends_on:
+      - kafka
+    volumes:
+      - ./docker/kafka/scripts:/tmp/kafka/scripts
+    command: bash /tmp/kafka/scripts/provision.sh
+    profiles:
+      - central-ledger
+      - transfer
+      - discovery
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  kafka:
+    networks:
+      - mojaloop-net
+    image: docker.io/bitnamilegacy/kafka:${DEP_KAFKA_VERSION}
+    container_name: kafka
+    # ports:
+    #   - "9092:9092"
+    environment:
+      # BITNAMI_DEBUG: "yes"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_CFG_LISTENERS: CONTROLLER://:9093,LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,LISTENER_DOCKER:PLAINTEXT,LISTENER_EXTERN:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_MESSAGE_MAX_BYTES: 200000000
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+      KAFKA_ENABLE_KRAFT: "true"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh",
+          "--bootstrap-server",
+          "kafka:9092",
+        ]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+    profiles:
+      - central-ledger
+      - transfer
+      - discovery
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  mysql:
+    image: mysql/mysql-server:${DEP_MYSQL_VERSION}
+    container_name: mysql
+    # ports:
+    #   - "3306:3306"
+    volumes:
+      # Note: this fixes the permissions issue, but docker-compose up will fail on first attempt
+      - ./docker/sql-init/:/docker-entrypoint-initdb.d/
+    environment:
+      - MYSQL_USER=${DBUSER:-central_ledger}
+      - MYSQL_PASSWORD=${DBPASS:-password}
+      - MYSQL_DATABASE=${DBUSER:-central_ledger}
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "mysql"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+    profiles:
+      - central-ledger
+      - transfer
+      - discovery
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  quoting-service:
+    image: "mojaloop/quoting-service:${QUOTING_SERVICE_VERSION}"
+    container_name: quoting-service
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json && node src/index.js"
+    environment:
+      - UV_THREADPOOL_SIZE=20
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      central-ledger:
+        condition: service_started
+      kafka:
+        condition: service_started
+      kafka-provisioning:
+        condition: service_completed_successfully
+    # ports:
+    #   - "3002:3002"
+    volumes:
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    healthcheck:
+      test: wget -q http://127.0.0.1:3002/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 15s
+    user: root
+    profiles:
+      - quoting-service
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  quoting-service-handler:
+    image: "mojaloop/quoting-service:${QUOTING_SERVICE_VERSION}"
+    container_name: quoting-service-handler
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/quoting-service.js /opt/app/config/default.json && npm run start:handlers"
+    environment:
+      - UV_THREADPOOL_SIZE=20
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      central-ledger:
+        condition: service_started
+      kafka:
+        condition: service_started
+      quoting-service:
+        condition: service_healthy
+      kafka-provisioning:
+        condition: service_completed_successfully
+    # ports:
+    #   - "3022:3002"
+    #   - "29229:9229"
+    volumes:
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    healthcheck:
+      test: wget -q http://127.0.0.1:3003/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 15s
+    user: root
+    profiles:
+      - quoting-service
+      - agreement
+      - all-services
+      - fx
+      - merchant-registry
+
+  ml-api-adapter:
+    image: mojaloop/ml-api-adapter:${ML_API_ADAPTER_VERSION}
+    container_name: ml-api-adapter
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/ml-api-adapter.js /opt/app/config/default.json && /opt/app/wait4/wait4.js ml-api-adapter && node src/api/index.js"
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+      - ./docker/secrets/jwsSigningKey.key:/opt/app/secrets/jwsSigningKey.key
+    environment:
+      - LOG_LEVEL=info
+    networks:
+      - mojaloop-net
+    depends_on:
+      kafka:
+        condition: service_started
+      kafka-provisioning:
+        condition: service_completed_successfully
+      central-ledger:
+        condition: service_started
+    healthcheck:
+      test: wget -q http://127.0.0.1:3000/health -O /dev/null || exit 1
+      timeout: 30s
+      retries: 30
+      interval: 30s
+      start_period: 30s
+    user: root
+    profiles:
+      - ml-api-adapter
+      - transfer
+      - all-services
+      - fx
+      - merchant-registry
+
+  simulator:
+    image: mojaloop/simulator:${TEST_SIMULATOR_VERSION}
+    container_name: simulator
+    # ports:
+    #   - "8444:8444"
+    environment:
+      - LOG_LEVEL=info
+      - TRANSFERS_ENDPOINT=http://ml-api-adapter:3000
+      - QUOTES_ENDPOINT=http://quoting-service:3002
+      - PARTIES_ENDPOINT=http://account-lookup-service:4002
+      - TRANSACTION_REQUESTS_ENDPOINT=http://transaction-request-service:4003
+      - TRANSFERS_FULFIL_RESPONSE_DISABLED=false
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: wget -q http://127.0.0.1:8444/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 10
+      interval: 30s
+    profiles:
+      - simulator
+      - discovery
+      - all-services
+      - fx
+      - merchant-registry
+
+  account-lookup-service:
+    image: mojaloop/account-lookup-service:${ACCOUNT_LOOKUP_SERVICE_VERSION}
+    container_name: account-lookup-service
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/account-lookup-service.js /opt/app/config/default.json && /opt/app/wait4/wait4.js account-lookup-service && npm run migrate && npm run start:all"
+    # ports:
+    #   - "4001:4001"
+    #   - "4002:4002"
+    environment:
+      - LOG_LEVEL=info
+      - ALS_DISPLAY_ROUTES=false
+      - EVENT_SDK_TRACEID_PER_VENDOR=false
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql-als:
+        condition: service_healthy
+      central-ledger:
+        condition: service_started
+      simulator:
+        condition: service_healthy
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    healthcheck:
+      test: wget -q http://127.0.0.1:4001/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+    user: root
+    profiles:
+      - account-lookup-service
+      - discovery
+      - all-services
+      - fx
+      - merchant-registry
+
+  als-msisdn-oracle-svc:
+    image: mojaloop/als-msisdn-oracle-svc:${ALS_MSISDN_ORACLE_SVC_VERSION}
+    container_name: als-msisdn-oracle-svc
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/dist/config/default.json /opt/app/config-modifier/configs/als-msisdn-oracle-svc.js /opt/app/dist/config/default.json && /opt/app/wait4/wait4.js als-msisdn-oracle-svc && npm run migrate && node ./dist/src/cli.js"
+    # ports:
+    #   - "4001:4001"
+    #   - "4002:4002"
+    # environment:
+    #   - LOG_LEVEL=info
+
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql-als:
+        condition: service_healthy
+      central-ledger:
+        condition: service_started
+      simulator:
+        condition: service_healthy
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+    healthcheck:
+      test: wget -q http://127.0.0.1:3000/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+    user: root
+    profiles:
+      - als-msisdn-oracle-svc
+      - discovery
+      - all-services
+      - fx
+      - merchant-registry
+
+  mysql-als:
+    image: mysql/mysql-server:${DEP_MYSQL_VERSION}
+    container_name: mysql-als
+    # ports:
+    #   - "3307:3306"
+    volumes:
+      - ./docker/sql-als-init/:/docker-entrypoint-initdb.d/
+    environment:
+      - MYSQL_USER=${DBUSER:-account_lookup}
+      - MYSQL_PASSWORD=${DBPASS:-password}
+      - MYSQL_DATABASE=${DBUSER:-account_lookup}
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "mysql-als"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+    profiles:
+      - account-lookup-service
+      - als-msisdn-oracle-svc
+      - discovery
+      - all-services
+      - fx
+      - merchant-registry
+
+  fx-provider1-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    env_file: envs/fx-provider.env
+    depends_on:
+      - redis
+      - mojaloop-testing-toolkit
+    command: yarn nx run modules-api-svc:start:debug
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - fx-sdk
+
+  fx-payerdfsp-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    env_file: envs/fx-payerdfsp-sdk.env
+    depends_on:
+      - redis
+      - mojaloop-testing-toolkit
+    command: yarn nx run modules-api-svc:start:debug
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - fx-sdk
+
+  fx-payeedfsp-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    env_file: envs/fx-payeedfsp-sdk.env
+    depends_on:
+      - redis
+      - mojaloop-testing-toolkit
+    command: yarn nx run modules-api-svc:start:debug
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - fx-sdk
+
+  redis:
+    image: "redis:6.2.4-alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  ## Testing Toolkit
+  mojaloop-testing-toolkit:
+    image: mojaloop/ml-testing-toolkit:${TEST_TTK_SVC_VERSION}
+    container_name: mojaloop-testing-toolkit
+    volumes:
+      - "./docker/ml-testing-toolkit/spec_files:/opt/app/spec_files"
+      - "./docker/ml-testing-toolkit/test-cases:/opt/app/examples"
+    ports:
+      - "9440:4040"
+      - "9550:5050"
+    user: root
+    command:
+      - sh
+      - -c
+      - "npm start"
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -v localhost 4040"]
+      interval: 5s
+      timeout: 10s
+      start_period: 10s
+      retries: 10
+    profiles:
+      - testing-toolkit
+      - all-services
+      - merchant-registry
+
+  mojaloop-testing-toolkit-ui:
+    image: mojaloop/ml-testing-toolkit-ui:${TEST_TTK_UI_VERSION}
+    container_name: mojaloop-testing-toolkit-ui
+    ports:
+      - "9660:6060"
+    environment:
+      ## Change localhost to the host IP if you are running the UI on a different machine
+      - API_BASE_URL=http://13.63.126.137:9550
+      - AUTH_ENABLED=FALSE
+    command:
+      - sh
+      - /usr/share/nginx/start.sh
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - testing-toolkit
+      - all-services
+      - merchant-registry
+
+  ttk-provisioning:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std --save-report true --report-format html --report-target file://reports/ttk-provisioning-report.html"
+    user: root
+    profiles:
+      - ttk-provisioning
+      - merchant-registry
+
+  ttk-provisioning-gp:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std-gp --save-report true --report-format html --report-target file://reports/ttk-provisioning-gp-report.html"
+    user: root
+    profiles:
+      - ttk-provisioning-gp
+
+  ttk-provisioning-fx:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std,fx --save-report true --report-format html --report-target file://reports/ttk-provisioning-fx-report.html"
+    user: root
+    profiles:
+      - ttk-provisioning-fx
+
+  ttk-provisioning-fx-sdk:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/provisioning -e environments/default-env.json --labels std,fx,fx-sdk --save-report true --report-format html --report-target file://reports/ttk-provisioning-fx-report.html"
+    user: root
+    profiles:
+      - ttk-provisioning-fx-sdk
+
+  ttk-tests:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+      ttk-provisioning:
+        condition: service_completed_successfully
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html"
+    user: root
+    profiles:
+      - ttk-tests
+      - merchant-registry
+
+  ttk-tests-gp:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+      ttk-provisioning-gp:
+        condition: service_completed_successfully
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std-gp --report-format html --save-report true --report-target file://reports/ttk-gp-tests-report.html"
+    user: root
+    profiles:
+      - ttk-tests-gp
+
+  ttk-fx-tests:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+      ttk-provisioning-fx:
+        condition: service_completed_successfully
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std,fx --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html"
+    user: root
+    profiles:
+      - ttk-fx-tests
+
+  ttk-fx-sdk-tests:
+    image: mojaloop/ml-testing-toolkit-client-lib:${TEST_TTK_CLI_VERSION}
+    volumes:
+      - "./docker/ml-testing-toolkit/test-cases/collections:/opt/app/collections"
+      - "./docker/ml-testing-toolkit/test-cases/environments:/opt/app/environments"
+      - "./reports:/opt/app/reports"
+    depends_on:
+      mojaloop-testing-toolkit:
+        condition: service_healthy
+      central-ledger:
+        condition: service_healthy
+      central-handler-position-batch:
+        condition: service_healthy
+      ml-api-adapter:
+        condition: service_healthy
+      account-lookup-service:
+        condition: service_healthy
+      quoting-service:
+        condition: service_healthy
+      quoting-service-handler:
+        condition: service_healthy
+      ttk-provisioning-fx-sdk:
+        condition: service_completed_successfully
+    networks:
+      - mojaloop-net
+    command:
+      - sh
+      - -c
+      - "npm run cli -- -u http://mojaloop-testing-toolkit:5050 -l 2 -i collections/tests -e environments/default-env.json --labels std,fx,fx-sdk --report-format html --save-report true --report-target file://reports/ttk-func-tests-report.html"
+    user: root
+    profiles:
+      - ttk-fx-sdk-tests
+
+  ## Debug utilities
+  kafka-debug-ui:
+    image: docker.redpanda.com/redpandadata/console:${DEP_KAfKA_UI_VERSION}
+    deploy:
+      replicas: 1
+    restart: on-failure
+    hostname: kafka-debug-ui
+    ports:
+      - "8080:8080"
+    networks:
+      - mojaloop-net
+    environment:
+      - KAFKA_BROKERS=kafka:29092
+    depends_on:
+      - kafka
+    profiles:
+      - debug
+
+  ## Finance Portal services
+  reporting-events-processor-svc:
+    image: mojaloop/reporting-events-processor-svc:${FP_EVENTS_PROCESSOR_SVC_VERSION}
+    user: root ##TODO: Need to check if this is required
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/reporting-events-processor-svc.js /opt/app/config/default.json && npm start"
+    volumes:
+      - ./docker/config-modifier:/opt/app/config-modifier
+    environment:
+      - EVENT_STORE_DB_HOST=objstore
+      - EVENT_STORE_DB_PORT=27017
+      - EVENT_STORE_DB_DATABASE=reporting
+      - EVENT_STORE_DB_EVENTS_COLLECTION=reporting
+      - KAFKA_TOPIC_EVENT=topic-event-audit
+    networks:
+      - mojaloop-net
+    depends_on:
+      objstore:
+        condition: service_healthy
+    profiles:
+      - finance-portal
+
+  reporting-hub-bop-api-svc:
+    image: mojaloop/reporting-hub-bop-api-svc:${FP_GRAPHQL_API_SVC_VERSION}
+    environment:
+      - REPORTING_DB_HOST=mysql
+      - REPORTING_DB_PORT=3306
+      - REPORTING_DB_USER=central_ledger
+      - REPORTING_DB_SCHEMA=central_ledger
+      - EVENT_STORE_DB_HOST=objstore
+      - EVENT_STORE_DB_PORT=27017
+      - EVENT_STORE_DB_DATABASE=reporting
+      - ALLOW_CREDENTIALS=false
+      - PRISMA_LOGGING_ENABLED=true
+      ## Change localhost to the host IP if you are running the UI on a different machine
+      - CORS_WHITELIST=http://localhost:9400
+    volumes:
+      - ./docker/reporting-hub-bop-api-svc/config:/opt/reporting/config
+    ports:
+      - "9401:3000"
+    networks:
+      - mojaloop-net
+    depends_on:
+      objstore:
+        condition: service_healthy
+    profiles:
+      - finance-portal
+
+  fp-proxy:
+    image: nginx:alpine
+    ports:
+      - "9400:80"
+    volumes:
+      - ./docker/fp-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - central-ledger
+      - quoting-service
+      - reporting-hub-bop-shell
+    networks:
+      - mojaloop-net
+    profiles:
+      - finance-portal
+
+  reporting-hub-bop-trx-ui:
+    image: mojaloop/reporting-hub-bop-trx-ui:${FP_TRANSFERS_UI_VERSION}
+    environment:
+      ## Change localhost to the host IP if you are running the UI on a different machine
+      - REACT_APP_API_BASE_URL=http://localhost:9400/graphql
+    ports:
+      - "9302:8082"
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: wget -q http://127.0.0.1:8082 -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 15s
+    profiles:
+      - finance-portal
+
+  reporting-hub-bop-positions-ui:
+    image: mojaloop/reporting-hub-bop-positions-ui:${FP_POSITIONS_UI_VERSION}
+    environment:
+      ## Change localhost to the host IP if you are running the UI on a different machine
+      - CENTRAL_LEDGER_ENDPOINT=http://localhost:9400/central-admin
+    ports:
+      - "9304:8084"
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: wget -q http://127.0.0.1:8084 -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 15s
+    profiles:
+      - finance-portal
+
+  ## This UI can be accessed through fp-proxy on http://localhost:9400
+  reporting-hub-bop-shell:
+    image: mojaloop/reporting-hub-bop-shell:${FP_SHELL_UI_VERSION}
+    environment:
+      - AUTH_ENABLED=false
+      - AUTH_API_BASE_URL=/
+      - AUTH_MOCK_API=false
+      - REMOTE_API_BASE_URL=/
+      - REMOTE_MOCK_API=false
+      ## Change localhost to the host IP if you are running the UI on a different machine
+      - REMOTE_1_URL=http://localhost:9301
+      - REMOTE_2_URL=http://localhost:9302
+      - REMOTE_3_URL=http://localhost:9303
+      - REMOTE_4_URL=http://localhost:9304
+    networks:
+      - mojaloop-net
+    healthcheck:
+      test: wget -q http://127.0.0.1:8080 -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 15s
+    profiles:
+      - finance-portal
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISER_VERSION}
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8082:8080
+    networks:
+      - mojaloop-net
+      # - monitoring-net
+    restart: always
+    deploy:
+      mode: global
+    profiles:
+      - finance-portal
+
+  central-settlement:
+    image: mojaloop/central-settlement:${CENTRAL_SETTLEMENT_VERSION}
+    container_name: central-settlement
+    command: sh -c "/opt/app/config-modifier/run.js /opt/app/config/default.json /opt/app/config-modifier/configs/central-settlement.js /opt/app/config/default.json && /opt/app/wait4/wait4.js central-settlement && node src/api/index.js"
+    volumes:
+      - ./docker/wait4:/opt/app/wait4
+      - ./docker/config-modifier:/opt/app/config-modifier
+      - ./docker/event_sdk/config.json:/opt/app/.EVENT_SDKrc
+    environment:
+      - LOG_LEVEL=info
+      - CLEDG_MONGODB__DISABLED=false
+    networks:
+      - mojaloop-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      objstore:
+        condition: service_healthy
+      kafka-provisioning:
+        condition: service_completed_successfully
+    healthcheck:
+      test: wget -q http://127.0.0.1:3001/health -O /dev/null || exit 1
+      timeout: 20s
+      retries: 30
+      interval: 30s
+      start_period: 30s
+    user: root
+    profiles:
+      - central-settlement
+      - all-services
+      - merchant-registry
+
+  payeefsp-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: payeefsp-redis
+    command: redis-server --port 6381
+    ports:
+      - "6381:6381"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  payeefsp-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: payeefsp-sdk
+    env_file: envs/payeefsp-sdk.env
+    depends_on:
+      - payeefsp-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  payerfsp-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: payerfsp-redis
+    command: redis-server --port 6383
+    ports:
+      - "6383:6383"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  payerfsp-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: payerfsp-sdk
+    env_file: envs/payerfsp-sdk.env
+    depends_on:
+      - payerfsp-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp1-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: testfsp1-redis
+    command: redis-server --port 6385
+    ports:
+      - "6385:6385"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp1-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: testfsp1-sdk
+    env_file: envs/testfsp1-sdk.env
+    depends_on:
+      - testfsp1-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - central-settlement
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp2-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: testfsp2-redis
+    command: redis-server --port 6387
+    ports:
+      - "6387:6387"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp2-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: testfsp2-sdk
+    env_file: envs/testfsp2-sdk.env
+    depends_on:
+      - testfsp2-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - central-settlement
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp3-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: testfsp3-redis
+    command: redis-server --port 6389
+    ports:
+      - "6389:6389"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp3-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: testfsp3-sdk
+    env_file: envs/testfsp3-sdk.env
+    depends_on:
+      - testfsp3-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - central-settlement
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp4-redis:
+    image: "redis:6.2.4-alpine"
+    container_name: testfsp4-redis
+    command: redis-server --port 6391
+    ports:
+      - "6391:6391"
+    networks:
+      - mojaloop-net
+    profiles:
+      - all-services
+      - fx
+      - merchant-registry
+
+  testfsp4-sdk:
+    image: mojaloop/sdk-scheme-adapter:${SDK_SCHEME_ADAPTER_VERSION}
+    container_name: testfsp4-sdk
+    env_file: envs/testfsp4-sdk.env
+    depends_on:
+      - testfsp4-redis
+      - mojaloop-testing-toolkit
+    command: yarn start:api-svc
+    user: root
+    networks:
+      - mojaloop-net
+    profiles:
+      - central-settlement
+      - all-services
+      - fx
+      - merchant-registry
+
+  ## Merchant Registry Services
+  acquirer-backend:
+    build:
+      context: your/local/path/to/merchant-registry-svc
+      dockerfile: Dockerfile-acquirer-backend
+    restart: unless-stopped
+    command: ["npm", "run", "acquirer-backend:start"]
+    ports:
+      - "5555:5555"
+    environment:
+      - APP_URL=http://127.0.0.1:5555 # SendGrid Callback Email Verification URL
+      - FRONTEND_SET_PASSWORD_URL=http://localhost:5173/set-password # Callback redirect password URL
+      - HOST=0.0.0.0
+      - PORT=5555
+
+      - DB_HOST=merchant-db
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - DB_DATABASE=acquirer_db
+
+      - S3_ENDPOINT=minio
+      - S3_PORT=9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_MERCHANT_BUCKET_NAME=merchant-documents
+
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest # TODO: change this in production
+      - RABBITMQ_PASSWORD=guest # TODO: change this in production
+      - RABBITMQ_QUEUE=acquirer_to_registry
+      - RABBITMQ_REPLY_QUEUE=registry_reply_acquirer
+
+      - RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
+      - RECAPTCHA_ENABLED=true
+
+      - SENDGRID_API_KEY=your-sendgrid-api-key
+      - SENDER_EMAIL=your-email@example.com
+
+      # GLEIF API Configuration
+      - GLEIF_API_URL=https://api.gleif.org/api/v1
+      - GLEIF_API_KEY=
+    depends_on:
+      - merchant-db
+      - minio
+      - rabbitmq
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+  acquirer-frontend:
+    restart: unless-stopped
+    build:
+      context: your/local/path/to/merchant-registry-frontend
+      dockerfile: Dockerfile-acquirer-frontend
+    environment:
+      - VITE_HOST=0.0.0.0
+      - VITE_PORT=5173
+      - VITE_API_URL=http://127.0.0.1:5555/api/v1
+      - VITE_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
+    ports:
+      - "5173:5173"
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+  registry-oracle:
+    build:
+      context: your/local/path/to/merchant-registry-svc
+      dockerfile: Dockerfile-registry-oracle
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8888
+
+      - DB_HOST=merchant-db
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - DB_DATABASE=registry_db
+
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest # TODO: change this in production
+      - RABBITMQ_PASSWORD=guest # TODO: change this in production
+      - RABBITMQ_QUEUE=acquirer_to_registry
+      - RABBITMQ_REPLY_QUEUE=registry_reply_acquirer
+    depends_on:
+      - merchant-db
+      - rabbitmq
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+  rabbitmq:
+    image: rabbitmq:3.12.4-management-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest # TODO: change this in production
+      - RABBITMQ_DEFAULT_PASS=guest # TODO: change this in production
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+  merchant-db:
+    container_name: mysql-db
+    image: mysql:8.0.33
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+    ports:
+      - "3307:3306"
+    volumes:
+      - your_local_path_to_merchant_registry_sql_scripts:/docker-entrypoint-initdb.d
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+  minio:
+    image: minio/minio:RELEASE.2023-07-21T21-12-44Z
+    restart: unless-stopped
+    volumes:
+      - data:/data
+    ports:
+      - "9000:9000"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data
+    networks:
+      - mojaloop-net
+    profiles:
+      - merchant-registry
+
+volumes:
+  data:
